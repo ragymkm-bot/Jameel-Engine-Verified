@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import base64
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -48,6 +49,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
             return self._handle_task_status(payload)
         elif path == '/webhook/agent/result':
             return self._handle_agent_result(payload)
+        elif path == '/save_key':
+            return self._handle_save_key(payload)
         elif path == '/webhook/health':
             return {"status": "ok", "service": "ragy-webhook"}
         else:
@@ -103,6 +106,18 @@ class WebhookHandler(BaseHTTPRequestHandler):
         """Receive agent result from n8n (for async agents)."""
         # This would be used for long-running agents that complete via webhook
         return {"received": True, "note": "Async result handling not yet implemented"}
+
+    def _handle_save_key(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """حفظ المفتاح مشفراً."""
+        key_encoded = payload.get('key')
+        if not key_encoded:
+            return {"error": "No key provided"}
+        
+        vault_path = Path("C:/AI-Agents-Lab/runtime/vault.json")
+        vault_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(vault_path, "w") as f:
+            json.dump({"key": key_encoded}, f)
+        return {"status": "success", "message": "Key stored securely"}
 
 
 def create_webhook_server(
