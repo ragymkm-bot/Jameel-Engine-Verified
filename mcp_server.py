@@ -2,6 +2,7 @@
 # هذا هو جسر التواصل بين الـ AI والملفات المحلية
 import sys
 import json
+from pathlib import Path
 
 def handle_request(request):
     """
