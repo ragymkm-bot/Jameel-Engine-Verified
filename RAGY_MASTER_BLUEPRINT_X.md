@@ -275,3 +275,14 @@ sequenceDiagram
 - الرد: `CREATE_COMMENT` على صفحة الأمر بالنتيجة + verification (discussion 41cbf934-461d-8103...).
 - القواعد: APPROVE:yes ⇒ بوابة موافقة بشرية · مفيش أسرار في الأوامر · كل أمر ليه task_id فريد.
 - حد صادق: الجسر شبه-متزامن (التحليل عند قراءة الـ inbox) مش real-time push — محتاج cron أو فحص يدوي.
+
+## المرحلة 9 — SEQ 007 T1–T2: Hermes Adapter ✅ (محلي، بدون بنية تحتية)
+- نُفّذ بعد موافقة المستخدم، بترتيب "المحلي أولاً" من SEQ 007.
+- `engine/hermes_adapter.py`: طبقة فوق ExecutionEngine **دون تعديله** — request_id + correlation_id + task_id فريد.
+- Idempotency: نفس request_id + نفس payload → نتيجة مخزّنة، بدون إعادة تنفيذ (مُختبَر: adapter.idempotent.hit).
+- استخدام نفس request_id مع payload مختلف → AdapterError (مُختبَر).
+- Approval بـ TTL: 300 ثانية افتراضياً، مرتبط بـ request + payload + هوية الموافق، dormant expire/mismatch/approver_mismatch، single-use (لا replay لموافقة قديمة).
+- كل قرار في نفس audit chain: adapter.request.received / approval.granted / approval.expired / idempotent.hit / result.
+- الاختبارات: **27/27 OK** (منها 7 للـ adapter).
+- CLI: `adapter_cli.py` — مثال: status=completed, audit_valid=true, audit_sequence=49.
+- **حد صادق:** idempotency في الذاكرة داخل process واحد — عبر CLI processes منفصلة يحتاج تخزيناً مشتركاً (T2 القادم). لم يُنفّذ Gateway/Tunnel/Worker/أسرار. لا تنفيذ سحابي قبل إثبات Q1.
