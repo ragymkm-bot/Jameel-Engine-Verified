@@ -5,10 +5,32 @@
 - لوحة GitHub Pages: https://ragymkm-bot.github.io/Jameel-Engine-Verified/
 - لوحة Cloudflare Pages: https://jameel-ragy-command-center.pages.dev/
 
-## ليه الـ MCP "مش كونكتت"؟
-السيرفر نفسه **شغال ومُختبَر** (initialize + list_files + read_file + رفض outside safe zone).
-السبب الحقيقي: **الجلسة الحالية اتولدت قبل ما أصلّح config.yaml**، فالـ runtime بتاع الجلسة ما حمّلش الـ MCP tools الجديدة.
-الحل: إعادة تشغيل Hermes (أو فتح جلسة جديدة) عشان يقرأ الإعدادات المصححة.
+## ليه الـ MCP "مش كونكتت"؟ — التشخيص النهائي بالدليل
+
+اختبرت كل سيرفر بـ `hermes mcp test` (من جوه Hermes مش من command line):
+
+| السيرفر | النتيجة | السبب |
+|---|---|---|
+| **ragy-mcp** (بتاعنا) | ✅ `✓ Connected 2670ms` + أداتين | شغال تمام — `list_files`, `read_file` |
+| hugging_face | ❌Connection failed | OAuth: no cached tokens |
+| gitlab | ❌ Connection failed | OAuth: no cached tokens |
+| cloudflare | ❌ Connection failed | OAuth: no cached tokens |
+
+**الخلاصة:** الـ MCP بتاعنا (ragy-mcp) **متصل وشغال**. اللي بيظهر "مش كونكتت" هم الـ 3 سيرفرات الخارجية اللي محتاجين **OAuth login تفاعلي منك**.
+
+## الحل للسيرفرات الخارجية (لازم تسويها أنت)
+الـ OAuth بيفتح متصفح وبيحتاج دخول بحسابك — مش أقدر أقوم بيها من non-interactive:
+```bash
+hermes mcp login hugging_face
+hermes mcp login gitlab
+hermes mcp login cloudflare
+```
+بعدين `hermes mcp test <name>` يرجع `✓ Connected`.
+
+## اللي اتصلح في الجلسة دي
+- `ragy-mcp` في Hermes اتثبّت على مسار Python صريح (كان `python` عام) — النتيجة `✓ Connected`.
+- نفس التثبيت في `.mcp.json` و `~/.claude.json` لـ Claude Code.
+- `hermes config check` → `Config version 52 ✓`.
 
 ## اللي اتعمله دلوقتي
 1. `.mcp.json` و `~/.claude.json` اتثبّتوا على المسار الصريح لـ Python (بدل `python` العام اللي ممكن يشير لنسخة غلط).
