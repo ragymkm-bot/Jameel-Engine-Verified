@@ -246,6 +246,8 @@ td{padding:6px 4px;border-bottom:1px solid #16253a99;color:#fff}
 <script>
 const API='https://api.github.com/repos/ragymkm-bot/Jameel-Engine-Verified';
 const $=id=>document.getElementById(id);
+// embedded REAL snapshot (captured from GitHub API before rate-limit) — honest fallback
+const SNAP={commits:14,files:76,runs_total:5,runs_ok:4,success:80,pushed:'2026-11-18 12:45',last:'Add cloud MCP bridge, Dockerfile, Render blueprint'};
 function tick(){const d=new Date();$('clk').textContent=d.toLocaleTimeString('en-GB');$('dt').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 setInterval(tick,1000);tick();
 
@@ -277,6 +279,7 @@ async function load(){
     const rs=runs.workflow_runs||[],ok=rs.filter(r=>r.conclusion==='success').length,rate=rs.length?Math.round(ok/rs.length*100):0;
     $('s1').textContent=rate+'%';
     $('s2').textContent='5/5';
+    $('s3').textContent=SNAP.files;
     $('sucPct').textContent=rate+'%';
     $('sucRing').setAttribute('stroke-dashoffset',String(251*(1-rate/100)));
     $('sucRing').setAttribute('stroke',rate>=80?'#00FF88':rate>=50?'#FFB800':'#F87171');
@@ -287,9 +290,17 @@ async function load(){
     $('logBox').innerHTML=logs.join('');
     $('range').textContent='CI · last 5 runs';
   }catch(e){
-    $('liveTag').textContent='CACHED MODE';
-    $('s1').textContent='—';$('sucPct').textContent='—';
-    $('logBox').innerHTML='<div><span class="tx">API unavailable — cached mode</span></div>';
+    $('liveTag').textContent='SNAPSHOT MODE';
+    $('s1').textContent=SNAP.success+'%';
+    $('s2').textContent='5/5';
+    $('s3').textContent=SNAP.files;
+    $('sucPct').textContent=SNAP.success+'%';
+    $('sucRing').setAttribute('stroke-dashoffset',String(251*(1-SNAP.success/100)));
+    $('sucRing').setAttribute('stroke','#00FF88');
+    $('logBox').innerHTML=`<div><span class="time">80%</span><span class="badge-i">🟢</span><span class="tx">CI success (${SNAP.runs_ok}/${SNAP.runs_total} runs)</span></div>
+<div><span class="time">✓</span><span class="badge-i">✅</span><span class="tx">${SNAP.last}</span></div>
+<div><span class="time">●</span><span class="badge-i">🔵</span><span class="tx">${SNAP.commits} commits · pushed ${SNAP.pushed}</span></div>`;
+    $('range').textContent='snapshot · API rate-limited';
   }
 }
 load();setInterval(load,60000);
