@@ -124,6 +124,9 @@ select.sel{background:#0d1324;color:var(--text);border:1px solid var(--border);b
       <p data-i="statusBody">All systems operational</p>
       <a href="#" data-act="status" data-i="statusLink">View status →</a>
     </div>
+    <div class="side-card" style="text-align:center">
+      <a href="/app" target="_blank" style="font-size:12px;font-weight:800">🖥️ RAGY Console ↗</a>
+    </div>
     <div class="side-card">
       <div class="mini-phone"><i style="height:14px"></i><i style="height:24px"></i><i style="height:18px"></i><i style="height:30px"></i></div>
       <h4 data-i="mobileTitle">ModelOps Mobile</h4>
@@ -249,7 +252,7 @@ function applyLang(){
 }
 /* ---------- data ---------- */
 const NAV=[['overview','navOverview','◈'],['workflows','navWorkflows','⤳'],['agents','navAgents','◉'],['analytics','navAnalytics','▥'],['approvals','navApprovals','✓'],['settings','navSettings','⚙']];
-let ACTIVE='overview';
+let ACTIVE=(location.hash||'#overview').slice(1);if(!NAV.some(n=>n[0]===ACTIVE))ACTIVE='overview';
 function renderNav(){
   document.getElementById('nav').innerHTML=NAV.map(([id,key,ic])=>`<a href="#" data-nav="${id}" class="${id===ACTIVE?'active':''}"><span class="ico">${ic}</span>${t(key)}</a>`).join('');
 }

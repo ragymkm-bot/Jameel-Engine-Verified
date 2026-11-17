@@ -8,6 +8,31 @@
 [![Python](https://img.shields.io/badge/Python-3.14-green.svg)]()
 [![License](https://img.shields.io/badge/License-RAGY--Protocol-blue.svg)]()
 
+> **ابدأ من هنا:** ▼
+
+## 📚 الفهرس الرئيسي (للمهندس/الوكيل الجديد)
+| الوثيقة | الغرض |
+|---|---|
+| **`RAGY_MASTER_BLUEPRINT_X.md`** | المراحل 1–23 + سجل الأخطاء + الحدود المعروفة |
+| **`RAGY_AUDIT_2026-11-19.md`** | تقرير التدقيق الجنائي (D1–D5) |
+| **`OPERATIONS_RUNBOOK.md`** | التشغيل اليومي + الاستعادة + التصعيد |
+| **`DECISION_LOG.md`** | كل قرار + السبب + البديل المرفوض |
+| **`SECURITY_MODEL.md`** | خريطة الثقة + الأسرار + التهديدات |
+| **`RAGY_CLOUD_ARCHITECTURE.md`** | تصميم البنية السحابية |
+| **`STATUS_REPORT_FULL.md`** | الحالة الشاملة |
+| **`LINKS_AND_MCP.md`** | الروابط الحية + تشخيص MCP |
+| **`cloud/README.md`** | تشغيل الـ Worker والـ poller |
+| **`cloud/WHATSAPP_SETUP.md`** | تفعيل بوت واتساب |
+| **`T3_DESIGN.md` / `T4_DESIGN.md` / `SEQ007_DISCOVERY_DESIGN.md`** | تصاميم الجسر والـ E2E |
+
+## 🌐 الروابط الحية
+| الخدمة | الرابط |
+|---|---|
+| الواجهة + اللوحة | `https://ragy-cloud-engine.aragy76.workers.dev/` |
+| لوحة التحكم `/app` | `https://ragy-cloud-engine.aragy76.workers.dev/app` |
+| GitHub | `https://github.com/ragymkm-bot/Jameel-Engine-Verified` |
+| Cloudflare Pages | `https://jameel-ragy-command-center.pages.dev/` |
+
 ---
 
 ## 🏗️ المعمارية

@@ -450,3 +450,15 @@ sequenceDiagram
 - **إصلاح القايمة:** `/app` كان مفيهوش `id="workflows"` → الـ anchors ما كانتش شغالة. أضفنا IDs لكل الأقسام + `scrollIntoView` عند التحميل.
 - متحقق بالمتصفح: nav → `/app#approvals` ✅ + vault card + workflows anchor موجودين.
 - 69/69 OK · Version `8f25b0c2`.
+
+## المرحلة 24 — تطوير شامل (Levels 1/2/5) ✅
+### Level 1 — الوثائق
+- `OPERATIONS_RUNBOOK.md` · `DECISION_LOG.md` · `SECURITY_MODEL.md` · README كفهرس مركزي.
+### Level 2 — الإنتاج
+- Cron `ragy-cloud-health-watch` (`e36f27a3fea2`) كل ساعة — script `ragy_health_watch.py`، مُختبر: `RAGY ok ready=True`.
+- Rate limit لكل client عبر `X-Client-Id` header (بدل IP فقط).
+- D1 backup: `cloud/backups/ragy-tasks-20261117.sql` (365KB، مستبعد من git).
+### Level 5 — الواجهة
+- زر 🖥️ RAGY Console في الـ sidebar يفتح `/app`.
+- active state يقرأ من `location.hash` (مش بيرجع Overview).
+- 69/69 OK · Version `3063567d`.

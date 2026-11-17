@@ -13,8 +13,8 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 200;
 const STATE = { idem: new Map(), rate: new Map() };
 
-function rateOk(req) {
-  const ip = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "local";
+function rateOk(req, clientKey) {
+  const ip = clientKey || req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "local";
   const now = Date.now();
   let entry = STATE.rate.get(ip);
   if (!entry || now - entry.start > RATE_WINDOW_MS) {
@@ -639,7 +639,8 @@ export default {
       return json({ processed: messages.length });
     }
 
-    if (!rateOk(request)) return deny(env, "", "rate limit exceeded", 429, "cloud.rate.denied");
+    const clientKey = (request.headers.get("X-Client-Id") || "").trim().slice(0, 80);
+    if (!rateOk(request, clientKey || null)) return deny(env, "", "rate limit exceeded", 429, "cloud.rate.denied");
 
     if (!authorized(request, env)) return deny(env, "", "unauthorized", 401, "cloud.auth.denied");
     if (!originOk(request, env)) return deny(env, "", "origin not allowed", 403, "cloud.origin.denied");

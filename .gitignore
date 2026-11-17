@@ -25,3 +25,5 @@ cloud/_deploy_*.js
 cloud/_deploy_*.json
 cloud/_refresh.json
 cloud/_uicheck.html
+
+cloud/backups/
