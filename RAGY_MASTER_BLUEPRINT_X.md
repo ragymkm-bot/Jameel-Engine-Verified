@@ -259,11 +259,11 @@ sequenceDiagram
 - النتيجة: JSON فيه `verification` (exit_code/http_status/audit_sequence) + `audit_valid`.
 - commit: `2bb67e7`.
 
-## حاجز n8n (صادق — مش وعود)
+## حاجز n8n → ✅ انحل (prebuild NAPI، بدون Visual Studio)
 - مثبّت `2.48.5` على Node 24 محلي (`tools/node24`)؛ `n8n --version` ✅.
-- **فشل التشغيل**: `@n8n/typeorm` محتاج sqlite3 native binding.
-- محاولات إصلاح: `npm install sqlite3@5.1.7` ✅ بس الـ binding اتبنى لـ ABI غلط (v26 بدل v24).
-- `npm rebuild sqlite3 --build-from-source` فشل: `Could not find any Visual Studio installation to use` + node-gyp استخدم system node v26.
-- الخلاصة: n8n **مش شغال** محلياً لحد ما يتثبّت Visual Studio Build Tools (تغيير نظام — محتاج موافقتك).
-- **المحرك مش متوقف عليه**: `n8n.status` بيرجع `failed` بصراحة (مش نتيجة مزيفة) — المنظومة شغالة بـ MCP + Codex.
-- البديل المتاح فوراً: GitHub Actions + Hermes cron (بلا تثبيت إضافي).
+- **السبب الجذري**: `--ignore-scripts` منع تحميل binary؛ `sqlite3@5.1.7` محتاج `napi-v6` binding.
+- **الحل**: `prebuild-install -r napi` نزّل `sqlite3-v5.1.7-napi-v6-win32-x64.tar.gz` من GitHub → `build/Release/node_sqlite3.node` ✅ (بدون VS Build Tools).
+- شغّل على `127.0.0.1:5690` → `/healthz` = HTTP 200 ✅.
+- قتلنا نسخة قديمة على port 5679 كانت بتعمل Task Broker conflict.
+- المحرك شاف الحالة: `engine_cli --task "check n8n status"` → `completed`, `http_status=200`, `audit_valid=true`.
+- ملاحظة: n8n محلي — بيوقف لما الجهاز يتطفأ (السحابة لسه GitHub Actions + cron).
