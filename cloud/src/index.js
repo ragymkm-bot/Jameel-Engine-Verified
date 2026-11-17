@@ -5,6 +5,7 @@
 import { appendEvent, verifyChain } from "./audit.js";
 import UI_HTML from "./ui-embedded.js";
 import { askCopilot, COPILOT_MODEL } from "./copilot.js";
+import { verifyWebhook, validSignature, extractMessages, sendText, isConfigured as waConfigured } from "./whatsapp.js";
 
 const MAX_IDEMPOTENCY = 512;
 const RATE_WINDOW_MS = 60_000;
@@ -530,6 +531,42 @@ export default {
 
     if (path === "/health" && request.method === "GET") {
       return json({ status: "ok", service: "ragy-cloud-engine", version: "1.0.0", ready: !!(env.RAGY_BRIDGE_TOKEN || "").trim() });
+    }
+
+    // ---- WhatsApp webhook (Meta signature; not Bearer-auth like our API) ----
+    if (path === "/whatsapp" && request.method === "GET") {
+      return verifyWebhook(url, env);
+    }
+    if (path === "/whatsapp" && request.method === "POST") {
+      const rawBody = await request.text();
+      if (!(await validSignature(request, rawBody, env))) {
+        return json({ error: "invalid signature" }, 403);
+      }
+      if (!waConfigured(env)) return json({ error: "WhatsApp not configured" }, 503);
+      let payload;
+      try { payload = JSON.parse(rawBody); }
+      catch { return json({ error: "invalid json" }, 400); }
+      const messages = extractMessages(payload);
+      for (const msg of messages) {
+        try {
+          let reply;
+          if (/^\s*\/run\b|نفّذ|نفذ/i.test(msg.text)) {
+            const task = msg.text.replace(/^\s*\/run\b|نفّذ|نفذ/i, "").trim();
+            const posted = await callTool("post_command", { task }, env, { actor: "whatsapp:" + msg.from });
+            reply = "تم إرسال الأمر إلى Hermes:\n" + (posted.content?.[0]?.text || "");
+          } else {
+            const answer = await askCopilot(msg.text, env);
+            reply = answer.answer || "لم أتمكن من الإجابة";
+          }
+          await sendText(msg.from, reply, env);
+          await appendEvent(env.DB, "cloud.whatsapp.replied", "whatsapp:" + msg.from, msg.message_id || null,
+                            { from: msg.from, chars: reply.length });
+        } catch (error) {
+          await appendEvent(env.DB, "cloud.whatsapp.failed", "whatsapp:" + msg.from, msg.message_id || null,
+                            { error: String(error).slice(0, 200) });
+        }
+      }
+      return json({ processed: messages.length });
     }
 
     if (!rateOk(request)) return deny(env, "", "rate limit exceeded", 429, "cloud.rate.denied");

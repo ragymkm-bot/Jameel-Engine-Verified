@@ -424,3 +424,13 @@ sequenceDiagram
 
 ### تحديث سجل الأخطاء
 - **D1:** اتصحّح فعليًا في المرحلة 20 (مش بس توثيق في 15).
+
+## المرحلة 21 — Floating Card + WhatsApp Adapter ✅ (بنية جاهزة)
+- **Floating card:** `inset-inline-end` → `right:22px` صريح + زر طيّ (`−/+`) + سحب بالماوس (drag). تحقق: `position:fixed`, `bottom:22px`، viewport 769×471 → top=303 = آخر الشاشة فعليًا ✅.
+- `cloud/src/whatsapp.js`: webhook verify + HMAC `X-Hub-Signature-256` + parsing + sendText.
+- `/whatsapp` route **قبل** الـ Bearer auth — Meta مش بعت توكننا. UDP: توقيع غلط = 403 · secret ناقص = 503 (fail-closed).
+- رسالة عادية → `ask_copilot` · `/run` أو "نفّذ" → `post_command` → Hermes المحلي.
+- حقيقة Meta: 1,000 رسالة service مجانية/شهر/رقم —رسائل العميل مجانية · واتساب الشخصي ممنوع.
+- `cloud/WHATSAPP_SETUP.md` — خطوات التفعيل (4 أسرار + webhook registration = إجراء خارجي بموافقة).
+- الحالة: الكود جاهز ومُختبر (67/67) لكن **مش مُفعّل** لحد ما ترفع الأسرار.
+- Version `8520670c`.

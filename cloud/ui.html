@@ -83,7 +83,12 @@ select.sel{background:#0d1324;color:var(--text);border:1px solid var(--border);b
 .chart-val{font-size:21px;font-weight:800}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{font-size:9px;padding:3px 7px;border-radius:6px;background:rgba(148,163,184,.1);color:var(--muted)}
-.float{position:fixed;inset-inline-end:22px;bottom:22px;width:min(320px,calc(100vw - 32px));background:rgba(24,18,48,.86);backdrop-filter:blur(16px);border:1px solid rgba(167,139,250,.35);border-radius:18px;padding:17px;box-shadow:0 20px 60px rgba(124,92,255,.28);z-index:40}
+.float{position:fixed;right:22px;bottom:22px;width:min(320px,calc(100vw - 32px));background:rgba(24,18,48,.86);backdrop-filter:blur(16px);border:1px solid rgba(167,139,250,.35);border-radius:18px;padding:17px;box-shadow:0 20px 60px rgba(124,92,255,.28);z-index:40;cursor:grab;user-select:none;transition:box-shadow .2s}
+.float.dragging{cursor:grabbing;box-shadow:0 26px 70px rgba(124,92,255,.5)}
+.float .fhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.float .fhead h4{margin:0;font-size:14px}
+.float .fclose{background:none;color:#b6a8d8;font-size:17px;line-height:1;padding:0 4px}
+.float.collapsed p,.float.collapsed .btn{display:none}
 .float h4{margin:0 0 6px;font-size:14px}.float p{margin:0 0 12px;color:#b6a8d8;font-size:11px;line-height:1.6}
 .float .btn{width:100%}
 .overlays{position:fixed;inset:0;background:rgba(3,6,15,.72);backdrop-filter:blur(4px);display:none;z-index:60;align-items:center;justify-content:center;padding:18px}
@@ -196,7 +201,7 @@ select.sel{background:#0d1324;color:var(--text);border:1px solid var(--border);b
   </main>
 </div>
 
-<div class="float" id="floatCard"><h4 data-i="deployTitle">Deploy smarter routes</h4><p data-i="deployBody">Optimize performance, cost, and reliability with intelligent routing.</p><button class="btn" data-act="deploy" data-i="deployBtn">Deploy Route ✨</button></div>
+<div class="float" id="floatCard"><div class="fhead"><h4 data-i="deployTitle">Deploy smarter routes</h4><button class="fclose" onclick="toggleFloat()" title="collapse">−</button></div><p data-i="deployBody">Optimize performance, cost, and reliability with intelligent routing.</p><button class="btn" data-act="deploy" data-i="deployBtn">Deploy Route ✨</button></div>
 <div class="overlays" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast-wrap" id="toasts"></div>
 
@@ -295,6 +300,14 @@ function renderPulse(){
 }
 /* ---------- interactions ---------- */
 function toast(msg){const d=document.createElement('div');d.className='toast';d.textContent=msg;document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),2800);}
+/* ---------- floating card: collapse + drag ---------- */
+function toggleFloat(){var f=document.getElementById('floatCard');f.classList.toggle('collapsed');f.querySelector('.fclose').textContent=f.classList.contains('collapsed')?'+':'−';}
+(function(){
+  var f=document.getElementById('floatCard'),drag=false,sx=0,sy=0,ox=0,oy=0;
+  f.addEventListener('mousedown',function(e){if(e.target.closest('.fclose')||e.target.closest('.btn'))return;drag=true;f.classList.add('dragging');var r=f.getBoundingClientRect();ox=r.left;oy=r.top;sx=e.clientX;sy=e.clientY;f.style.left=ox+'px';f.style.top=oy+'px';f.style.right='auto';f.style.bottom='auto';});
+  document.addEventListener('mousemove',function(e){if(!drag)return;f.style.left=Math.max(0,Math.min(window.innerWidth-f.offsetWidth,ox+e.clientX-sx))+'px';f.style.top=Math.max(0,Math.min(window.innerHeight-f.offsetHeight,oy+e.clientY-sy))+'px';});
+  document.addEventListener('mouseup',function(){drag=false;f.classList.remove('dragging');});
+})();
 /* ---------- Phase B: real API data for UI buttons ---------- */
 var LIVE={metrics:null,tasks:[],automations:[],clients:[],commands:[],audit:null};
 function apiCall(tool,args){
