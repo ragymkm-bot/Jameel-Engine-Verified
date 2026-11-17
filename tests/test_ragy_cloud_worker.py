@@ -199,6 +199,16 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertIn("cloud.automation.started", out)
         self.assertIn("cloud.automation.finished", out)
 
+    def test_ui_phase_b_wiring(self) -> None:
+        """Phase B: UI buttons must be wired to real API calls, not demo toasts."""
+        from pathlib import Path
+        ui = (Path(__file__).resolve().parent.parent / "cloud" / "ui.html").read_text(encoding="utf-8")
+        self.assertIn("function apiCall(", ui)
+        self.assertIn("function loadLiveData(", ui)
+        self.assertIn("apiCall('create_automation'", ui)
+        self.assertIn("window.location.href='/app#'+ACTIVE", ui)
+        self.assertIn("setInterval(loadLiveData,15000)", ui)
+
     def test_command_queue_and_delete_lifecycle(self) -> None:
         def tool(name, args):
             return call("/mcp", token=self.token,

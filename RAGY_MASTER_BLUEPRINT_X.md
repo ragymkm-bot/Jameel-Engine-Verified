@@ -411,3 +411,16 @@ sequenceDiagram
 - **Phase B** ⏳ — ربط أزرار `/ui` بالـ API الحقيقي.
 - **Phase C** ⏳ — Client dashboard/usage/billing-ready.
 - **Phase D** ⏳ — ChatGPT مباشر + إعادة فحص Notion/Claude.
+
+## المرحلة 20 — Phase B: ربط أزرار `/ui` بالـ API الحقيقي ✅
+- **تصحيح D1 الفعلي:** أزرار `/ui` بقت حقيقية:
+  - nav + metrics → تروح `/app#section` (تحقق بالمتصفح: `/app#workflows`).
+  - Deploy → `apiCall('create_automation')` حقيقي (بعت toast) + تحديث البيانات.
+  - metrics/approvals/agents → `loadLiveData()` تسحب `list_tasks/list_automations/list_clients/list_commands/verify_audit` كل 15 ثانية.
+  - View all → يروح `/app#approvals|agents|cost`.
+- لايف: السيرفر بيرجع 38,405 bytes مع 7 `apiCall` + 5 `loadLiveData` · متصفح أكد `apiCall: True`.
+- اختبار آلي جديد `test_ui_phase_b_wiring` يمنع الرجوع للخلف.
+- 63/63 OK · Version `3902d0a5`.
+
+### تحديث سجل الأخطاء
+- **D1:** اتصحّح فعليًا في المرحلة 20 (مش بس توثيق في 15).

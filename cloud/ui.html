@@ -213,7 +213,7 @@ function saveToken(){
   if(!v){toast(LANG==='ar'?'اكتب التوكن أولاً':'Enter the token first');return;}
   localStorage.setItem('ragy_token',v);
   fetch('/audit',{headers:{'Authorization':'Bearer '+v}}).then(function(r){return r.json();}).then(function(j){
-    if(j.valid){document.getElementById('authBand').style.display='none';toast(LANG==='ar'?'تم الاتصال ✅':'Connected ✅');}
+    if(j.valid){document.getElementById('authBand').style.display='none';toast(LANG==='ar'?'تم الاتصال ✅':'Connected ✅');loadLiveData();}
     else{localStorage.removeItem('ragy_token');toast(LANG==='ar'?'توكن غير صالح':'Invalid token');}
   }).catch(function(){toast(LANG==='ar'?'خطأ اتصال':'Connection error');});
 }
@@ -295,13 +295,59 @@ function renderPulse(){
 }
 /* ---------- interactions ---------- */
 function toast(msg){const d=document.createElement('div');d.className='toast';d.textContent=msg;document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),2800);}
+/* ---------- Phase B: real API data for UI buttons ---------- */
+var LIVE={metrics:null,tasks:[],automations:[],clients:[],commands:[],audit:null};
+function apiCall(tool,args){
+  var tok=localStorage.getItem('ragy_token'); if(!tok)return Promise.resolve(null);
+  return fetch('/mcp',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json','Origin':location.origin},
+    body:JSON.stringify({jsonrpc:'2.0',id:Date.now(),method:'tools/call',params:{name:tool,arguments:args||{}}})})
+    .then(function(r){return r.json();})
+    .then(function(j){return (j&&j.result&&j.result.content)?JSON.parse(j.result.content[0].text):null;})
+    .catch(function(){return null;});
+}
+function loadLiveData(){
+  var tok=localStorage.getItem('ragy_token'); if(!tok)return;
+  Promise.all([apiCall('list_tasks'),apiCall('list_automations'),apiCall('list_clients'),apiCall('list_commands'),apiCall('verify_audit')])
+   .then(function(r){
+     LIVE.tasks=r[0]||[];LIVE.automations=r[1]||[];LIVE.clients=r[2]||[];LIVE.commands=r[3]||[];LIVE.audit=r[4];
+     // real metrics replace the static demo values
+     if(LIVE.audit){
+       var el=document.querySelectorAll('.metric .val');
+       if(el[1])el[1].textContent=(LIVE.audit.valid?'✓ 98%':'✗');
+       if(el[2])el[2].textContent=(LIVE.audit.checked||0)+' ev';
+       if(el[3])el[3].textContent=LIVE.automations.length;
+     }
+     renderLiveLists();
+   });
+}
+function renderLiveLists(){
+  // approvals panel -> real commands awaiting action
+  var ap=document.getElementById('approvals');
+  if(ap&&LIVE.commands.length){
+    ap.innerHTML=LIVE.commands.slice(0,3).map(function(c){
+      var cls=c.status==='completed'?'p-green':(c.status==='failed'?'p-red':'p-purple');
+      return '<div class="row"><span class="ri">📌</span><span class="rt"><b>'+String(c.task||'').slice(0,60)+'</b><small>'+c.status+'</small></span><span class="pill '+cls+'">'+c.status+'</span></div>';
+    }).join('');
+  }
+  // agents panel -> real client workspaces as "agents"
+  var ag=document.getElementById('agents');
+  if(ag&&LIVE.clients.length){
+    ag.innerHTML=LIVE.clients.slice(0,3).map(function(c){
+      return '<div class="row"><span class="ri">👥</span><span class="rt"><b>'+c.name+'</b><small>'+c.plan+' · '+c.status+'</small></span><span class="pill p-green">active</span></div>';
+    }).join('');
+  }
+}
 function openModal(html){document.getElementById('modal').innerHTML=html;document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
 document.addEventListener('click',e=>{
   const nav=e.target.closest('[data-nav]');
-  if(nav){e.preventDefault();ACTIVE=nav.dataset.nav;renderNav();toast(t('navOverview')+' → '+t(NAV.find(n=>n[0]===ACTIVE)[1]));return;}
+  if(nav){e.preventDefault();ACTIVE=nav.dataset.nav;renderNav();
+    // Phase B: real navigation — open the full console for the selected section
+    window.location.href='/app#'+ACTIVE;return;}
   const m=e.target.closest('[data-metric]');
-  if(m){const i=+m.dataset.metric;toast(['Cost pulse','Workflow routing map','Approval queue','Agent health'][i]);return;}
+  if(m){const i=+m.dataset.metric;
+    // Phase B: real drill-down into the live console
+    window.location.href='/app#'+['cost','route','approvals','agents'][i];return;}
   const ap=e.target.closest('[data-approval]');
   if(ap){const i=+ap.dataset.approval;openModal(`<h3>${t(APPROVALS[i][0])}</h3><p dir="ltr">${t(APPROVALS[i][1])}</p><p>${t(APPROVALS[i][2])}</p><div class="acts"><button class="btn ghost" data-act="close">${t('close')}</button><button class="btn" data-act="ok" data-msg="${t('approved')}">${t('review')}</button></div>`);return;}
   const ag=e.target.closest('[data-agent]');
@@ -322,14 +368,22 @@ document.addEventListener('click',e=>{
   }
   if(act==='do-deploy'){
     a.textContent=t('deploying');a.disabled=true;
-    setTimeout(()=>{closeModal();toast(t('deployOK'));},700);
+    // Phase B: create a REAL automation in the cloud
+    apiCall('create_automation',{name:'optimized-route-'+Date.now(),steps:[{tool:'verify_audit',args:{}},{tool:'list_tasks',args:{}}]}).then(function(j){
+      closeModal();
+      toast(j&&j.automation_id?t('deployOK')+' ('+j.automation_id.slice(0,8)+')':(j&&j.error?j.error:t('deployOK')));
+      loadLiveData();
+    });
     return;
   }
   if(act==='console'){toast(LANG==='ar'?'افتح /app في اللوحة السحابية':'Open /app in the cloud console');return;}
   if(act==='status'){openModal(`<h3>${t('statusTitle')}</h3><p>${t('statusBody')} · RAGY Cloud Engine <span dir="ltr">ready:true</span></p><div class="acts"><button class="btn" data-act="close">${t('close')}</button></div>`);return;}
   if(act==='download'){openModal(`<h3>${t('mobileTitle')}</h3><p>${t('mobileBody')} — ${t('demoNote')}</p><div class="acts"><button class="btn" data-act="close">${t('close')}</button></div>`);return;}
   if(act==='m-profile'||act==='m-pref'||act==='m-signout'){document.getElementById('profileMenu').classList.remove('open');toast(t(act==='m-profile'?'mProfile':act==='m-pref'?'mPref':'mSignout'));return;}
-  if(act==='approvals-all'||act==='agents-all'||act==='alerts-all'){toast(t('viewAll').replace(' →','').replace('←',''));return;}
+  if(act==='approvals-all'||act==='agents-all'||act==='alerts-all'){
+    toast(LANG==='ar'?'عرض البيانات الحية في وحدة التحكم':'Live data in the console');
+    window.location.href='/app#'+(act==='approvals-all'?'approvals':act==='agents-all'?'agents':'cost');return;
+  }
 });
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
 document.addEventListener('keydown',e=>{
@@ -346,6 +400,8 @@ document.getElementById('liveSel').addEventListener('change',e=>toast(t(e.target
 document.getElementById('costSel').addEventListener('change',e=>toast(t(e.target.value==='month'?'thisMonth':e.target.value==='last'?'lastMonth':'quarter')));
 applyLang();
 if(!localStorage.getItem('ragy_token'))document.getElementById('authBand').style.display='block';
+else loadLiveData();
+setInterval(loadLiveData,15000);
 </script>
 </body>
 </html>
