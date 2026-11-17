@@ -5,9 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false
       - name: Verify deliverables are present
         run: |
           test -f README.md
           test -f mcp_stdio_server.py
-          test -f replica.html
+          test -f CONTEXT_PACK.md
           echo "Deployment artifacts verified (publishing handled by gh-pages / wrangler workflows)."
