@@ -19,3 +19,9 @@ tools/
 cloud/.dev-token
 cloud/dev.log
 cloud/.dev.vars
+
+cloud/.openrouter-key
+cloud/_deploy_*.js
+cloud/_deploy_*.json
+cloud/_refresh.json
+cloud/_uicheck.html

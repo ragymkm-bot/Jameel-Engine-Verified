@@ -4,6 +4,7 @@
 
 import { appendEvent, verifyChain } from "./audit.js";
 import UI_HTML from "./ui-embedded.js";
+import { askCopilot, COPILOT_MODEL } from "./copilot.js";
 
 const MAX_IDEMPOTENCY = 512;
 const RATE_WINDOW_MS = 60_000;
@@ -93,6 +94,7 @@ const TOOLS = [
   { name: "list_commands", description: "List commands and their status" },
   { name: "delete_automation", description: "Delete an automation. Requires {automation_id, confirm:'DELETE'}" },
   { name: "delete_command", description: "Delete a queued command. Requires {command_id, confirm:'DELETE'}" },
+  { name: "ask_copilot", description: "Ask RAGY Copilot (RAG over project docs). {question}" },
 ];
 
 function textResult(value) {
@@ -221,6 +223,16 @@ async function callTool(name, args, env, ctx = {}) {
     await appendEvent(env.DB, isAuto ? "cloud.automation.deleted" : "cloud.command.deleted",
                       ctx.actor || "ragy-cloud-engine", id, { deleted: true });
     return textResult({ deleted: true, id, table });
+  }
+  if (name === "ask_copilot") {
+    try {
+      const reply = await askCopilot(args?.question, env);
+      await appendEvent(env.DB, "cloud.copilot.asked", ctx.actor || "ragy-cloud-engine", ctx.request_id || null,
+                        { model: COPILOT_MODEL, has_tool: !!reply.tool });
+      return textResult(reply);
+    } catch (error) {
+      return { ...textResult({ error: String(error).slice(0, 300) }), isError: true };
+    }
   }
   return { content: [{ type: "text", text: "unknown tool" }], isError: true };
 }
@@ -385,6 +397,28 @@ export default {
       return new Response(LANDING, {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       });
+    }
+
+    // ---- Copilot endpoint ----
+    if (path === "/copilot" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); }
+      catch { return json({ error: "invalid json" }, 400); }
+      try {
+        const reply = await askCopilot(body?.question, env);
+        await appendEvent(env.DB, "cloud.copilot.asked", "ragy-copilot", null,
+                          { model: COPILOT_MODEL, has_tool: !!reply.tool });
+        // caller may ask Copilot to execute a tool from its answer
+        if (reply.tool && body?.execute_tool !== false) {
+          const allowed = new Set(["list_tasks", "list_automations", "list_commands", "verify_audit", "create_task", "post_command"]);
+          if (allowed.has(reply.tool.name)) {
+            reply.tool_result = await callTool(reply.tool.name, reply.tool.args, env, { actor: "ragy-copilot" });
+          }
+        }
+        return json(reply);
+      } catch (error) {
+        return json({ error: String(error).slice(0, 400) }, 503);
+      }
     }
 
     if ((path === "/ui" || path === "/ui.html") && request.method === "GET") {

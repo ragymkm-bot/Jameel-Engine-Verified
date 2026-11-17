@@ -124,7 +124,8 @@ class CloudWorkerTests(unittest.TestCase):
         names = [t["name"] for t in body["result"]["tools"]]
         self.assertEqual(names, ["list_tasks", "get_task", "create_task", "verify_audit",
                                  "create_automation", "list_automations", "run_automation", "list_runs",
-                                 "post_command", "list_commands", "delete_automation", "delete_command"])
+                                 "post_command", "list_commands", "delete_automation", "delete_command",
+                                 "ask_copilot"])
         code, body = call("/mcp", token=self.token,
                           body={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(code, 200)

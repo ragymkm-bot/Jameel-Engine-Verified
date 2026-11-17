@@ -350,3 +350,11 @@ sequenceDiagram
 - E2E مُثبت لايف: post → claim → execute → complete → `status=completed, audit_valid=True`.
 - 3finding اتصحّحوا: deploy button event delegation · poller sys.path · SIGTERM من timeout تجريبي (مش عيب كود).
 - اختبارات: 61/61 OK. الواجهة version `6cf5a109`، الـ bridge `cad545a2`.
+
+## المرحلة 16 — RAGY Copilot على OpenRouter ✅ (جاهز، بينتظر المفتاح)
+- `cloud/src/copilot.js`: RAG ثابت من مستندات المشروع + `google/gemma-4-31b-it:free` على OpenRouter.
+- `/copilot` endpoint + MCP tool `ask_copilot` + واجهة Chat في `/ui` (عربي/إنجليزي).
+- fail-closed: بدون `OPENROUTER_API_KEY` بيرجع 503/error صريح — مفيش إجابة مزيفة.
+- المفتاح يُرفع عبر `bash cloud/setup_copilot_key.sh` من ملف محلي مستبعد من git (مش في الشات).
+- مسألة auth: OAuth token منتهي → اتجدّد عبر refresh_token بـ client_id الصحيح من `wrangler login --browser false`.
+- لايف: Version `19073021` · `/ui` 33840 bytes · Copilot guard يعمل · 61/61 OK.

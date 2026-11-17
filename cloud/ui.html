@@ -174,6 +174,17 @@ select.sel{background:#0d1324;color:var(--text);border:1px solid var(--border);b
         <section class="panel"><div class="ph"><h3>⚠️ <span data-i="alertsTitle">System alerts</span></h3><button class="link" data-act="alerts-all" data-i="viewAll">View all →</button></div><div id="alerts"></div></section>
       </div>
     </div>
+
+    <section class="panel" style="margin-top:15px;grid-column:1/-1">
+      <div class="ph"><h3>🤖 RAGY Copilot</h3><span class="pill p-purple" dir="ltr">gemma-4 · free</span></div>
+      <p class="muted" id="copilotNote" style="font-size:11px;margin:0 0 10px">Trained on RAGY docs · answers Arabic/English · can call automation tools.</p>
+      <div id="chatLog" style="background:#0b0e14;border:1px solid var(--border);border-radius:10px;padding:10px;max-height:220px;overflow:auto;font-size:12px;line-height:1.7"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="chatInput" data-i-ph="copilotPh" placeholder="Ask: what is the MCP status?" style="flex:1;background:#0b0e14;border:1px solid #2c3a56;color:#e8eef7;padding:10px;border-radius:8px">
+        <button class="btn" onclick="askCopilot()">Send</button>
+      </div>
+      <pre id="chatRaw" class="muted" style="margin-top:8px;font-size:10px"></pre>
+    </section>
   </main>
 </div>
 
@@ -189,6 +200,23 @@ const I={
 };
 let LANG=localStorage.getItem('ragy_lang')||'en';
 const t=k=>(I[LANG]||I.en)[k]||k;
+function askCopilot(){
+  var inp=document.getElementById('chatInput'),log=document.getElementById('chatLog');
+  var q=inp.value.trim(); if(!q)return; inp.value='';
+  log.innerHTML+='<div style="color:#a78bfa;margin:4px 0">🧑 '+(LANG==='ar'?'أنت':'You')+': '+q+'</div>';
+  log.innerHTML+='<div id="wait" style="color:#64748b;margin:4px 0">…</div>';
+  fetch('/copilot',{method:'POST',headers:{'Authorization':'Bearer '+localStorage.getItem('ragy_token'),'Content-Type':'application/json'},body:JSON.stringify({question:q})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var wait=document.getElementById('wait'); if(wait)wait.remove();
+      if(j.error){log.innerHTML+='<div style="color:#f87171;margin:4px 0">⚠ '+j.error+'</div>';return;}
+      log.innerHTML+='<div style="color:#86efac;margin:4px 0 10px">🤖 Copilot: '+String(j.answer||'').replace(/\n/g,'<br>')+'</div>';
+      if(j.tool){log.innerHTML+='<div class="muted" dir="ltr" style="font-size:10px">TOOL: '+j.tool.name+'</div>';}
+      document.getElementById('chatRaw').textContent=JSON.stringify(j,null,2).slice(0,1200);
+      log.scrollTop=log.scrollHeight;
+    })
+    .catch(function(e){var w=document.getElementById('wait');if(w)w.remove();log.innerHTML+='<div style="color:#f87171">⚠ '+e.message+'</div>';});
+}
 function applyLang(){
   document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
   document.querySelectorAll('[data-i]').forEach(e=>e.textContent=t(e.dataset.i));
