@@ -1,0 +1,14 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local runtime state (do not version secrets or machine state)
+runtime/vault.json
+secrets/.vault
+
+# Cloudflare local state
+.wrangler/
+
+# Scratch
+*.bak-*

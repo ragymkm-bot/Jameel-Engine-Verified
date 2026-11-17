@@ -241,16 +241,13 @@ Return ONLY the code, no markdown formatting."""
 
     def _validate_code(self, file_path: str) -> str:
         try:
-            import subprocess
-            result = subprocess.run(
-                ["python", "-m", "py_compile", file_path],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if result.returncode == 0:
+            import py_compile
+
+            try:
+                py_compile.compile(file_path, doraise=True)
                 return "Syntax OK"
-            return f"Syntax Error: {result.stderr[:200]}"
+            except py_compile.PyCompileError as e:
+                return f"Syntax Error: {str(e)[:200]}"
         except Exception as e:
             return f"Validation failed: {e}"
 
