@@ -10,5 +10,8 @@ secrets/.vault
 # Cloudflare local state
 .wrangler/
 
+# Local toolchains (Node 20, n8n, codex) - never commit
+tools/
+
 # Scratch
 *.bak-*
