@@ -6,11 +6,20 @@
 
 const META_GRAPH = "https://graph.facebook.com/v23.0";
 
-export function verifyWebhook(url, env) {
+// Reads a secret from env first, then the encrypted vault (secretLookup).
+async function resolve(name, env, lookup) {
+  const direct = (env[name] || "").trim();
+  if (direct) return direct;
+  if (lookup) return (await lookup(name) || "").trim();
+  return "";
+}
+
+// Meta sends hub.verify_token in the GET query. Compare with env or vault.
+export async function verifyWebhook(url, env, lookup) {
   const mode = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token");
   const challenge = url.searchParams.get("hub.challenge");
-  const expected = (env.WHATSAPP_VERIFY_TOKEN || "").trim();
+  const expected = await resolve("WHATSAPP_VERIFY_TOKEN", env, lookup);
   if (mode === "subscribe" && expected && token === expected) {
     return new Response(challenge || "", { status: 200, headers: { "Content-Type": "text/plain" } });
   }
@@ -19,8 +28,8 @@ export function verifyWebhook(url, env) {
 
 // Meta signs every webhook payload with X-Hub-Signature-256 = sha256=HMAC(app_secret, rawBody).
 // We use WHATSAPP_APP_SECRET (separate from the access token). Fail-closed if missing.
-export async function validSignature(request, rawBody, env) {
-  const secret = (env.WHATSAPP_APP_SECRET || "").trim();
+export async function validSignature(request, rawBody, env, lookup) {
+  const secret = await resolve("WHATSAPP_APP_SECRET", env, lookup);
   if (!secret) return false;
   const sig = request.headers.get("X-Hub-Signature-256") || "";
   if (!sig.startsWith("sha256=")) return false;
@@ -57,9 +66,9 @@ export function extractMessages(payload) {
   return out;
 }
 
-export async function sendText(to, text, env) {
-  const token = (env.WHATSAPP_TOKEN || "").trim();
-  const phoneId = (env.WHATSAPP_PHONE_ID || "").trim();
+export async function sendText(to, text, env, lookup) {
+  const token = await resolve("WHATSAPP_TOKEN", env, lookup);
+  const phoneId = await resolve("WHATSAPP_PHONE_ID", env, lookup);
   if (!token || !phoneId) throw new Error("WhatsApp secrets not configured");
   const resp = await fetch(`${META_GRAPH}/${phoneId}/messages`, {
     method: "POST",
@@ -73,7 +82,10 @@ export async function sendText(to, text, env) {
   return resp.json();
 }
 
-export function isConfigured(env) {
-  return !!(env.WHATSAPP_TOKEN || "").trim() && !!(env.WHATSAPP_PHONE_ID || "").trim()
-      && !!(env.WHATSAPP_VERIFY_TOKEN || "").trim() && !!(env.WHATSAPP_APP_SECRET || "").trim();
+export async function isConfigured(env, lookup) {
+  const names = ["WHATSAPP_TOKEN", "WHATSAPP_PHONE_ID", "WHATSAPP_VERIFY_TOKEN", "WHATSAPP_APP_SECRET"];
+  for (const n of names) {
+    if (!(await resolve(n, env, lookup))) return false;
+  }
+  return true;
 }

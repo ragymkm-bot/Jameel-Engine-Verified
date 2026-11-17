@@ -593,7 +593,9 @@ export default {
       if (!authorized(request, env)) return json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
       const names = ["WHATSAPP_VERIFY_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_TOKEN", "WHATSAPP_PHONE_ID"];
       const present = {};
-      for (const n of names) present[n] = !!(env[n] || "").trim();
+      for (const n of names) {
+        present[n] = !!(env[n] || "").trim() || !!(await getSecret(env, n).catch(() => ""));
+      }
       const all = Object.values(present).every(Boolean);
       return json({
         configured: all,
@@ -605,14 +607,14 @@ export default {
 
     // ---- WhatsApp webhook (Meta signature; not Bearer-auth like our API) ----
     if (path === "/whatsapp" && request.method === "GET") {
-      return verifyWebhook(url, env);
+      return verifyWebhook(url, env, (k)=>getSecret(env,k));
     }
     if (path === "/whatsapp" && request.method === "POST") {
       const rawBody = await request.text();
-      if (!(await validSignature(request, rawBody, env))) {
+      if (!(await validSignature(request, rawBody, env, (k)=>getSecret(env,k)))) {
         return json({ error: "invalid signature" }, 403);
       }
-      if (!waConfigured(env)) return json({ error: "WhatsApp not configured" }, 503);
+      if (!await waConfigured(env, (k)=>getSecret(env,k))) return json({ error: "WhatsApp not configured" }, 503);
       let payload;
       try { payload = JSON.parse(rawBody); }
       catch { return json({ error: "invalid json" }, 400); }
@@ -628,7 +630,7 @@ export default {
             const answer = await askCopilot(msg.text, env, (k)=>getSecret(env,k));
             reply = answer.answer || "لم أتمكن من الإجابة";
           }
-          await sendText(msg.from, reply, env);
+          await sendText(msg.from, reply, env, (k)=>getSecret(env,k));
           await appendEvent(env.DB, "cloud.whatsapp.replied", "whatsapp:" + msg.from, msg.message_id || null,
                             { from: msg.from, chars: reply.length });
         } catch (error) {

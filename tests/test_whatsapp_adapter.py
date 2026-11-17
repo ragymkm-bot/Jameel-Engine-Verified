@@ -12,7 +12,7 @@ JS = ROOT / "cloud" / "src" / "whatsapp.js"
 
 
 def node_eval(expr: str) -> str:
-    script = f'import("file:///{JS.as_posix()}").then(m => {{ const r = {expr}; console.log(JSON.stringify(r)); }})'
+    script = f'import("file:///{JS.as_posix()}").then(async m => {{ const r = await {expr}; console.log(JSON.stringify(r)); }})'
     result = subprocess.run(["node", "--input-type=module", "-e", script],
                             capture_output=True, text=True, timeout=40)
     if result.returncode != 0:
@@ -37,6 +37,17 @@ class WhatsAppAdapterTests(unittest.TestCase):
 
     def test_is_configured_fail_closed(self) -> None:
         self.assertFalse(json.loads(node_eval("m.isConfigured({})")))
+
+    def test_vault_fallback_for_secrets(self) -> None:
+        lookup = "(async k => k==='WHATSAPP_TOKEN' ? 'vault-token' : null)"
+        # env empty + vault lookup returns only one of the 4 → still not fully configured
+        self.assertFalse(json.loads(node_eval(f"m.isConfigured({{}}, {lookup})")))
+
+    def test_resolve_prefers_env_then_vault(self) -> None:
+        lookup = "(async k => 'from-vault')"
+        # with env set, it must win
+        env = json.dumps({"WHATSAPP_TOKEN": "from-env"})
+        self.assertTrue(json.loads(node_eval(f"m.isConfigured({env}, {lookup})")))
 
     def test_source_security_requirements(self) -> None:
         src = (ROOT / "cloud" / "src" / "whatsapp.js").read_text(encoding="utf-8")

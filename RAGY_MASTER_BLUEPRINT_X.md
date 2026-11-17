@@ -462,3 +462,11 @@ sequenceDiagram
 - زر 🖥️ RAGY Console في الـ sidebar يفتح `/app`.
 - active state يقرأ من `location.hash` (مش بيرجع Overview).
 - 69/69 OK · Version `3063567d`.
+
+## المرحلة 25 — تجهيز واتساب قبل تفعيل الرقم ✅
+- `whatsapp.js` دلوقتي بيقرأ الأسرار من **env أولاً ثم Vault المشفّر** (عبر `secretLookup`) في كل دوال: verifyWebhook · validSignature · sendText · isConfigured.
+- `/whatsapp/status` بيفحص env + vault معًا — أسماء بس بدون قيم.
+- Copilot كمان بيقرأ OpenRouter من Vault كـ fallback.
+- اختبارات جديدة: `test_vault_fallback_for_secrets` + `test_resolve_prefers_env_then_vault`.
+- 71/71 OK · Version `b624ceb6`.
+- **النتيجة:** المستخدم يقدر يرفع الأربع أسرار من `/app` (المحفظة المشفّرة) على تليفونه، وبعد تفعيل الرقم في Meta البوت يشتغل فورًا بدون أي تدخل إضافي.
