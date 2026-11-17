@@ -85,6 +85,12 @@ class BridgeState:
         with self._lock:
             self.sessions.discard(sid)
 
+    def reset(self) -> None:
+        """Clear all in-process sessions and idempotency cache (fresh process / redeploy)."""
+        with self._lock:
+            self.sessions.clear()
+            self._idem.clear()
+
     @staticmethod
     def _hash(payload: dict[str, Any]) -> str:
         return hashlib.sha256(
@@ -155,6 +161,9 @@ class SecureBridgeHandler(BaseHTTPRequestHandler):
     def _request_id(self) -> str:
         return self.headers.get("X-Request-Id", "").strip()
 
+    def _correlation_id(self) -> str:
+        return self.headers.get("X-Correlation-Id", "").strip()
+
     # ---- routes ---------------------------------------------------------
     def do_GET(self) -> None:
         path = urlparse(self.path).path
@@ -200,6 +209,7 @@ class SecureBridgeHandler(BaseHTTPRequestHandler):
         if path != "/mcp":
             return self._respond({"error": "not found"}, 404)
 
+        correlation_id = self._correlation_id()
         request_id = self._request_id()
         if not self._authorized():
             return self._deny(401, "unauthorized", audit_type="bridge.auth.denied", request_id=request_id)
@@ -253,7 +263,7 @@ class SecureBridgeHandler(BaseHTTPRequestHandler):
 
         self.config.audit.append(
             "bridge.request.served", "secure-bridge", request_id or None,
-            {"method": method, "ok": "error" not in response},
+            {"method": method, "ok": "error" not in response, "correlation_id": correlation_id or None},
         )
         self._respond(response, 200, extra)
 
