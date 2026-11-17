@@ -342,3 +342,11 @@ sequenceDiagram
 - المساعدات الحالية (ChatGPT/Claude/Codex/Hermes) هي نماذج خارجية — لا يوجد "تدريب" محلي لها بلا تدريب فعلي (fine-tuning) أو RAG بمستنداتك.
 - ما يمكن بناؤه فعليًا الآن: **RAGY Copilot** — طبقة ذاكرة+سياق (RAG) فوق نموذج موجود، تتعلم من سجل المشاريع/القرارات وترد بأسلوب راجي. محتاج API key يدخل Secrets (مش الشات).
 - "تحسّن مني" = ادّعاء غير قابل للتحقق؛ الهدف المهني: مساعد يقلل تكرار الأخطاء ويعرض أدلة، لا يتفوّق على البشر بشكل مطلق.
+
+## المرحلة 15 — واجهة AetherOps + Hermes Poller ✅
+- `/ui` — واجهة ثنائية اللغة (EN/AR + RTL) مطابقة للتصميم المرفق: 6 nav · 4 metrics · routing map SVG · approvals · agents · alerts · cost pulse · floating deploy. كل زرار له فعل حقيقي (modals/toasts/language/nav). مُختبرة بالمتصفح: صفر أخطاء.
+- `/bridge/claim` + `/bridge/complete` — Cloudflare Worker endpoints محميين بـ Bearer (401 من غير توكن).
+- `cloud/hermes_poller.py` — يقرأ الأوامر من D1 وينفّذها عبر ExecutionEngine المحلي ويكتب النتيجة + audit.
+- E2E مُثبت لايف: post → claim → execute → complete → `status=completed, audit_valid=True`.
+- 3finding اتصحّحوا: deploy button event delegation · poller sys.path · SIGTERM من timeout تجريبي (مش عيب كود).
+- اختبارات: 61/61 OK. الواجهة version `6cf5a109`، الـ bridge `cad545a2`.

@@ -3,6 +3,7 @@
 // No secrets in source. Fail-closed when the token secret is missing.
 
 import { appendEvent, verifyChain } from "./audit.js";
+import UI_HTML from "./ui-embedded.js";
 
 const MAX_IDEMPOTENCY = 512;
 const RATE_WINDOW_MS = 60_000;
@@ -386,6 +387,12 @@ export default {
       });
     }
 
+    if ((path === "/ui" || path === "/ui.html") && request.method === "GET") {
+      return new Response(UI_HTML, {
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+
     if (path === "/app" && request.method === "GET") {
       return new Response(CONSOLE, {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
@@ -437,6 +444,34 @@ export default {
     if (path === "/tasks" && request.method === "GET") {
       const { results } = await env.DB.prepare("SELECT task_id, title, state, assigned_role, created_at FROM tasks ORDER BY created_at DESC LIMIT 100").all();
       return json({ tasks: results || [] });
+    }
+
+    // ---- Bridge endpoints (local Hermes poller ⇄ cloud outbox) ----
+    if (path === "/bridge/claim" && request.method === "POST") {
+      const { results } = await env.DB.prepare(
+        "SELECT command_id,task,requested_by,created_at FROM commands WHERE status='pending' ORDER BY created_at ASC LIMIT 1"
+      ).all();
+      const cmd = results?.[0];
+      if (!cmd) return json({ claimed: false });
+      const { success } = await env.DB.prepare(
+        "UPDATE commands SET status='claimed', claimed_at=? WHERE command_id=? AND status='pending'"
+      ).bind(new Date().toISOString(), cmd.command_id).run();
+      await appendEvent(env.DB, "cloud.command.claimed", "hermes-poller", cmd.command_id, { task: cmd.task.slice(0, 200) });
+      return json(success ? { claimed: true, command: cmd } : { claimed: false });
+    }
+
+    if (path === "/bridge/complete" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const id = String(body?.command_id || "").trim();
+      const resultJson = JSON.stringify(body?.result || {}).slice(0, 10000);
+      const status = body?.status === "failed" ? "failed" : "completed";
+      if (!id) return json({ error: "command_id required" }, 400);
+      const { success } = await env.DB.prepare(
+        "UPDATE commands SET status=?,result_json=?,completed_at=? WHERE command_id=? AND status='claimed'"
+      ).bind(status, resultJson, new Date().toISOString(), id).run();
+      await appendEvent(env.DB, status === "failed" ? "cloud.command.failed" : "cloud.command.completed",
+                        "hermes-poller", id, { status });
+      return json({ updated: success });
     }
 
     if (path === "/audit" && request.method === "GET") {

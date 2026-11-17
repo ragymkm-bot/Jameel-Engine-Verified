@@ -35,3 +35,14 @@ python -m unittest tests.test_ragy_cloud_worker -v
 
 ## الرابط المؤقت
 `https://ragy-cloud-engine.aragy76.workers.dev`
+
+## تشغيل الجسر (Hermes Poller) — ينفّذ أوامرك من السحابة على جهازك
+```bash
+cd C:/AI-Agents-Lab
+python cloud/hermes_poller.py
+```
+- يقرأ التوكن من `cloud/.dev-token` (gitignored).
+- يكلّم السحابة على `RAGY_CLOUD_URL` (الافتراضي هو الرابط فوق).
+- ينفّذ كل أمر عبر `ExecutionEngine` المحلي (نفس الصلاحيات والـ audit).
+- الأوامر اللي ليها تأثير خارجي محتاجة `RAGY_AUTO_APPROVE=1` + `RAGY_APPROVER=...` (افتراضياً ممنوعة).
+- الجهاز لازم يكون شغال عشان الأوامر تتنفّذ؛ السحابة والـ UI يفضلوا شغالين بدونه.
