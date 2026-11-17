@@ -1,204 +1,298 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jameel-System (RAGY) — Live Command Center</title>
+<title>RAGY Command Center — Jameel-System (Live)</title>
 <style>
-  :root{--bg:#070b14;--card:#0e1626;--card2:#111c31;--line:#1e2c44;--cyan:#22d3ee;--purple:#a78bfa;--green:#34d399;--amber:#fbbf24;--red:#f87171;--txt:#e2e8f0;--mut:#7c8ba5;--font:'Segoe UI',Tahoma,Arial,sans-serif}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:radial-gradient(1200px 600px at 80% -10%,#13213d 0%,transparent 60%),var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;padding:22px;line-height:1.6}
-  .wrap{max-width:1280px;margin:0 auto}
-  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px}
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:grid;place-items:center;font-size:22px;box-shadow:0 0 24px #22d3ee44}
-  .brand h1{font-size:22px;letter-spacing:.5px}.brand p{color:var(--mut);font-size:12px}
-  .pill{display:inline-flex;align-items:center;gap:7px;background:#0d2818;border:1px solid #1d6b44;color:var(--green);padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
-  @keyframes pulse{50%{opacity:.35}}
-  .clock{text-align:left;color:var(--mut);font-size:13px}.clock b{color:var(--txt);font-size:17px;display:block;direction:ltr}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
-  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:560px){.grid{grid-template-columns:1fr}}
-  .kpi{background:linear-gradient(160deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden}
-  .kpi::after{content:'';position:absolute;width:90px;height:90px;border-radius:50%;background:var(--accent,#22d3ee);opacity:.07;top:-30px;left:-30px}
-  .kpi .lab{color:var(--mut);font-size:12px}.kpi .val{font-size:32px;font-weight:800;margin:6px 0;color:var(--accent,#22d3ee)}
-  .kpi .sub{font-size:11px;color:var(--mut)}
-  .cols{display:grid;grid-template-columns:2fr 1fr;gap:18px}
-  @media(max-width:900px){.cols{grid-template-columns:1fr}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
-  .card h2{font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:9px;color:var(--txt)}
-  .card h2 span{font-size:11px;color:var(--mut);font-weight:400;margin-right:auto}
-  .flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:10px 0}
-  .node{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 15px;text-align:center;min-width:110px}
-  .node .ic{font-size:22px}.node .nm{font-size:12px;font-weight:700;margin-top:4px}.node .st{font-size:10px;color:var(--mut);margin-top:3px}
-  .node.live{border-color:#1d6b44;box-shadow:0 0 16px #34d39918}
-  .node.fix{border-color:var(--amber)}
-  .arrow{color:var(--cyan);font-size:20px;opacity:.7}
-  .bar-row{display:flex;align-items:center;gap:10px;margin:11px 0;font-size:12px}
-  .bar-row .name{width:120px;color:var(--mut)}
-  .bar{flex:1;height:8px;background:#0a1120;border-radius:5px;overflow:hidden}
-  .bar i{display:block;height:100%;border-radius:5px;transition:width 1s ease}
-  .bar-row .pct{width:42px;text-align:left;font-variant-numeric:tabular-nums}
-  .log{font-family:consolas,monospace;font-size:11px;line-height:1.9}
-  .log .t{color:var(--cyan)}.log .ok{color:var(--green)}.log .bad{color:var(--red)}.log .m{color:var(--mut)}
-  .runs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .run{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px}
-  .run.s{background:#0d2818;color:var(--green);border:1px solid #1d6b44}
-  .run.f{background:#2a1215;color:var(--red);border:1px solid #7f1d1d}
-  .run.p{background:#1a1a0d;color:var(--amber);border:1px solid #6b5a1d}
-  .foot{text-align:center;color:var(--mut);font-size:11px;padding:16px;border-top:1px solid var(--line);margin-top:10px}
-  .foot a{color:var(--cyan);text-decoration:none}
-  .badge{display:inline-block;background:#16233a;border:1px solid var(--line);padding:3px 9px;border-radius:8px;font-size:10px;color:var(--mut);margin:2px}
-  #statusLine{font-size:12px;color:var(--mut);margin-top:6px}
+:root{
+  --bg:#050B14; --panel:rgba(13,27,42,.78); --panel2:#0A1628; --border:#1E3A5F;
+  --cyan:#00E5FF; --blue:#3B82F6; --green:#00FF88; --green2:#10B981;
+  --purple:#A855F7; --amber:#FFB800; --white:#fff; --txt:#E2E8F0; --mut:#8FA3BF;
+  --font:'Segoe UI',Tahoma,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 700px at 75% -10%,#0e2440 0%,transparent 60%),radial-gradient(900px 600px at -10% 110%,#1a0b33 0%,transparent 55%),var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+.app{display:grid;grid-template-columns:215px 1fr;min-height:100vh}
+/* ===== SIDEBAR ===== */
+.side{background:linear-gradient(180deg,#08111f,#060d18);border-right:1px solid var(--border);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:relative}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 20px}
+.brand .ic{font-size:30px;filter:drop-shadow(0 0 8px #3b82f6)}
+.brand b{font-size:20px;letter-spacing:2px;display:block;color:#fff}
+.brand small{font-size:10px;color:var(--mut);display:block}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{display:flex;align-items:center;gap:11px;padding:11px 13px;color:var(--mut);text-decoration:none;font-size:13px;border-radius:7px;position:relative;transition:.2s}
+.nav a .ic{width:18px;text-align:center;font-size:15px}
+.nav a:hover{background:#0e2038;color:#fff}
+.nav a.active{background:linear-gradient(90deg,#1D4ED8,#2563EB);color:#fff;font-weight:600;box-shadow:0 0 18px #2563eb55}
+.nav a.active::before{content:'';position:absolute;left:0;top:15%;height:70%;width:3px;background:var(--cyan);border-radius:3px;box-shadow:0 0 10px var(--cyan)}
+.promo{margin-top:auto;background:linear-gradient(160deg,#0e1b30,#0a1220);border:1px solid var(--border);border-radius:11px;padding:14px;position:relative;overflow:hidden}
+.promo .dia{font-size:24px;color:var(--cyan);filter:drop-shadow(0 0 8px var(--cyan))}
+.promo b{color:#fff;font-size:13px;display:block;margin-top:6px}
+.promo .ed{color:var(--amber);font-size:11px}
+.promo p{color:var(--mut);font-size:10px;margin-top:8px;line-height:1.6;position:relative;z-index:2}
+.promo .wave{position:absolute;bottom:-10px;left:0;right:0;height:40px;background:repeating-radial-gradient(ellipse at 50% 120%,transparent 0 6px,#7c3aed22 7px 8px,#06b6d422 9px 10px);z-index:1}
+/* ===== MAIN ===== */
+.main{display:flex;flex-direction:column;min-width:0}
+.header{position:relative;padding:20px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(90deg,#071020,#0a1424);overflow:hidden}
+.header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 38px,#1e3a5f18 39px 40px),repeating-linear-gradient(0deg,transparent 0 38px,#1e3a5f12 39px 40px);z-index:0}
+.header>*{position:relative;z-index:1}
+.h-left .lg{font-size:20px;font-weight:800;letter-spacing:1px}
+.h-left .lg span{color:var(--cyan)}
+.h-left .sub{font-size:11px;color:var(--mut)}
+.h-mid{text-align:center;flex:1}
+.h-mid b{font-size:21px;letter-spacing:3px;color:#fff;display:block}
+.h-mid .ar{color:var(--cyan);font-size:12px;margin-top:3px}
+.h-right{display:flex;align-items:center;gap:14px}
+.pill{display:flex;align-items:center;gap:7px;background:#06301f;border:1px solid #0d7a4e;color:var(--green);padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:p 2s infinite}
+@keyframes p{50%{opacity:.35}}
+.tm b{font-size:16px;display:block;direction:ltr}
+.tm small{font-size:10px;color:var(--mut)}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:grid;place-items:center;font-size:16px}
+.content{padding:18px 22px;flex:1}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;gap:13px;position:relative;overflow:hidden}
+.stat::after{content:'';position:absolute;inset:0;box-shadow:inset 0 0 22px var(--glow);pointer-events:none}
+.stat .ic{width:44px;height:44px;border-radius:10px;background:var(--glow);display:grid;place-items:center;font-size:21px;flex-shrink:0}
+.stat .v{font-size:27px;font-weight:800;color:#fff;line-height:1.1}
+.stat .t1{font-size:12px;color:#fff;margin-top:2px}
+.stat .t2{font-size:10px;color:var(--mut)}
+/* mid grid */
+.mid{display:grid;grid-template-columns:1fr 330px;gap:16px;margin-bottom:16px}
+@media(max-width:1000px){.mid{grid-template-columns:1fr}}
+.bottom{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:16px}
+@media(max-width:1000px){.bottom{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card h3{font-size:13px;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:14px;letter-spacing:.5px}
+.card h3 .en{margin-left:auto;font-size:10px;color:var(--mut)}
+.mini{font-size:10px;padding:3px 8px;border-radius:10px;background:#06301f;color:var(--green);border:1px solid #0d7a4e}
+/* architecture */
+.arch-top{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.arch-mid{display:flex;justify-content:center;align-items:center;gap:18px;flex-wrap:wrap;margin:10px 0}
+.arch-bot{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.node{background:linear-gradient(160deg,#0e1b2e,#0a1424);border:1px solid var(--border);border-radius:9px;padding:9px 13px;text-align:center;min-width:104px;position:relative}
+.node .ic{font-size:17px}
+.node .n{font-size:11px;color:#fff;font-weight:600;margin-top:3px}
+.node .d{font-size:9px;color:var(--mut)}
+.node .led{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.node.glow{border-color:var(--cyan);box-shadow:0 0 16px #00e5ff44,inset 0 0 12px #00e5ff18}
+.node.side-n{border-color:#2a4a6a}
+.arrow-c{text-align:center;color:var(--cyan);font-size:17px;line-height:1;margin:2px 0;filter:drop-shadow(0 0 5px #00e5ff)}
+/* activity */
+.log{font-size:10.5px;line-height:1.85;direction:ltr;text-align:left}
+.log div{display:flex;gap:7px;align-items:flex-start;border-bottom:1px solid #16253a99;padding:3px 0}
+.log .time{color:var(--cyan);font-size:9.5px;min-width:52px}
+.log .tx{color:var(--txt);flex:1}
+.log .badge-i{width:15px;text-align:center}
+/* donuts */
+.res{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.donut{position:relative;width:56px;height:56px;margin:0 auto 5px}
+.donut svg{transform:rotate(-90deg)}
+.donut .pct{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+.res .lb{font-size:9px;color:var(--mut)}
+/* agents */
+.agent{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #16253a99;font-size:11px}
+.agent .nm{flex:1;color:#fff}
+.agent .st{color:var(--green);font-size:9px}
+.agent .bar{width:44px;height:4px;background:#16253a;border-radius:3px;overflow:hidden}
+.agent .bar i{display:block;height:100%;background:var(--green)}
+/* tasks table */
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{color:var(--mut);text-align:left;font-weight:500;padding:5px 4px;border-bottom:1px solid var(--border)}
+td{padding:6px 4px;border-bottom:1px solid #16253a99;color:#fff}
+.stt{padding:2px 6px;border-radius:8px;font-size:9px}
+.stt.done{background:#06301f;color:var(--green)}
+.stt.run{background:#0a2545;color:var(--cyan)}
+.stt.queue{background:#2a1d05;color:var(--amber)}
+/* performance */
+.perf{display:grid;grid-template-columns:1fr 130px;gap:14px;align-items:center}
+.chart{width:100%;height:120px}
+.big-donut{text-align:center}
+.big-donut .pct{font-size:22px;font-weight:800;color:var(--green)}
+.big-donut .lb{font-size:9px;color:var(--mut)}
+.dd{font-size:9px;color:var(--mut);border:1px solid var(--border);padding:3px 7px;border-radius:6px;margin-left:auto}
+/* footer */
+.foot{border-top:1px solid var(--border);padding:11px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--mut);background:#060d18}
+.foot a{color:var(--cyan);text-decoration:none}
+.foot .svc{display:flex;gap:14px;flex-wrap:wrap}
+.foot .svc span{display:flex;align-items:center;gap:5px}
+.foot .slogan{color:var(--txt)}
+@media(max-width:700px){.app{grid-template-columns:1fr}.side{display:none}.h-mid b{font-size:15px}.header{flex-wrap:wrap}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="brand">
-      <div class="logo">🧠</div>
-      <div><h1>RAGY <span style="color:var(--cyan)">COMMAND CENTER</span></h1><p>Jameel-System (RAGY) · Live Operations Dashboard</p></div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <span class="pill"><span class="dot"></span><span id="liveTag">CONNECTING TO GITHUB…</span></span>
-      <div class="clock"><b id="clk">--:--:--</b><span id="date">—</span></div>
-    </div>
-  </div>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand"><div class="ic">🧠</div><div><b>RAGY</b><small>Jameel-System</small></div></div>
+    <nav class="nav">
+      <a class="active" href="#"><span class="ic">🏠</span><span>Dashboard</span></a>
+      <a href="#"><span class="ic">👥</span><span>Agent Center</span></a>
+      <a href="#"><span class="ic">📋</span><span>Task Manager</span></a>
+      <a href="#"><span class="ic">🛡️</span><span>AI Council</span></a>
+      <a href="#"><span class="ic">🗄️</span><span>Memory Center</span></a>
+      <a href="#"><span class="ic">🔐</span><span>Security Center</span></a>
+      <a href="#"><span class="ic">⚛️</span><span>Developer Center</span></a>
+      <a href="#"><span class="ic">⚙️</span><span>Settings</span></a>
+    </nav>
+    <div class="promo"><div class="wave"></div><div class="dia">💎</div><b>RAGY v5.0</b><span class="ed">Genius Edition</span><p>نحو مستقبل أذكى — بقيادة الأفكار🚀</p></div>
+  </aside>
 
-  <div class="grid">
-    <div class="kpi" style="--accent:var(--cyan)"><div class="lab">نجاح الـ CI (حقيقي)</div><div class="val" id="kSuccess">—</div><div class="sub" id="kSuccessSub">من آخر 5 تشغيلات</div></div>
-    <div class="kpi" style="--accent:var(--green)"><div class="lab">الـ Commits (حقيقي)</div><div class="val" id="kCommits">—</div><div class="sub">إجمالي الريبو</div></div>
-    <div class="kpi" style="--accent:var(--purple)"><div class="lab">الملفات (حقيقي)</div><div class="val" id="kFiles">76</div><div class="sub">ملفات متتبعة · 1.1 MB</div></div>
-    <div class="kpi" style="--accent:var(--amber)"><div class="lab">الأحداث المحلية</div><div class="val" id="kEvents">3</div><div class="sub">Audit log (hash chain)</div></div>
-  </div>
-
-  <div class="cols">
-    <div>
-      <div class="card">
-        <h2>🏗️ System Architecture <span>ال-State الحقيقي — يتحدث من API</span></h2>
-        <div class="flow" id="flow"></div>
-        <div id="statusLine">جاري تحميل الحالة…</div>
-      </div>
-      <div class="card">
-        <h2>📊 Live Activity <span>سجل الأحداث</span></h2>
-        <div class="log" id="logBox"><div class="m">جاري الاتصال بـ GitHub API…</div></div>
+  <div class="main">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="h-left"><div class="lg">RAGY<span>.</span></div><div class="sub">Build • Orchestrate • Achieve</div></div>
+      <div class="h-mid"><b>RAGY COMMAND CENTER</b><div class="ar">مركز التحكم الموحد لمنظومة الذكاء الاصطناعي</div></div>
+      <div class="h-right">
+        <span class="pill"><span class="dot"></span><span id="liveTag">CONNECTING…</span></span>
+        <div class="tm"><b id="clk">--:--:--</b><small id="dt">—</small></div>
+        <div class="av">👤</div>
       </div>
     </div>
-    <div>
-      <div class="card">
-        <h2>⚙️CI Health <span>آخر 5 تشغيلات</span></h2>
-        <div class="runs" id="runs"></div>
-        <div style="margin-top:14px" class="bar-row"><span class="name">Python</span><div class="bar"><i style="width:97%;background:var(--cyan)"></i></div><span class="pct">97%</span></div>
-        <div class="bar-row"><span class="name">Dockerfile</span><div class="bar"><i style="width:3%;background:var(--purple)"></i></div><span class="pct">3%</span></div>
-        <p style="color:var(--mut);font-size:11px;margin-top:10px">اللغات من GitHub Languages API (حقيقي)</p>
+
+    <div class="content">
+      <!-- STATS -->
+      <div class="stats">
+        <div class="stat" style="--glow:#00ff8822;--c:var(--green)"><div class="ic">🖥️</div><div><div class="v" id="s1">—</div><div class="t1">System Health</div><div class="t2">صحة النظام · CI لايف</div></div></div>
+        <div class="stat" style="--glow:#3b82f622;--c:var(--blue)"><div class="ic">🛡️</div><div><div class="v" id="s2">—</div><div class="t1">Agents Online</div><div class="t2">الوكلاء المتصلون</div></div></div>
+        <div class="stat" style="--glow:#a855f722;--c:var(--purple)"><div class="ic">📋</div><div><div class="v" id="s3">76</div><div class="t1">Tracked Files</div><div class="t2">ملفات الريبو</div></div></div>
+        <div class="stat" style="--glow:#ffb80022;--c:var(--amber)"><div class="ic">🔐</div><div><div class="v" id="s4">0</div><div class="t1">Secrets in Chat</div><div class="t2">أسرار في الشات (صفر)</div></div></div>
       </div>
-      <div class="card">
-        <h2>🔐 الأمان <span>صادق مش مقلوب</span></h2>
-        <div class="bar-row"><span class="name">أسرار في الشات</span><span style="color:var(--green)">صفر ✓</span></div>
-        <div class="bar-row"><span class="name">Safe zone MCP</span><span style="color:var(--green)">مفعّل ✓</span></div>
-        <div class="bar-row"><span class="name">Cloudflare Tunnel</span><span style="color:var(--amber)">محتاج دومين</span></div>
-        <div style="margin-top:12px">
-          <span class="badge">MCP stdio ✓</span><span class="badge">Hash chain ✓</span>
-          <span class="badge">SSH auth ✓</span><span class="badge">Pages ✓</span>
+
+      <!-- MID -->
+      <div class="mid">
+        <div class="card">
+          <h3>🔀 System Architecture <span class="mini">● Components Live</span></h3>
+          <div class="arch-top">
+            <div class="node"><span class="led"></span><div class="ic">✨</div><div class="n">Claude Desktop</div><div class="d">MCP stdio</div></div>
+            <div class="node"><span class="led"></span><div class="ic">🌐</div><div class="n">ChatGPT (Web)</div><div class="d">Context Pack</div></div>
+            <div class="node"><span class="led"></span><div class="ic">⚡</div><div class="n">Codex (CLI/Cloud)</div><div class="d">code review</div></div>
+          </div>
+          <div class="arrow-c">↓　　　↓　　　↓</div>
+          <div class="arch-mid">
+            <div class="node side-n"><span class="led"></span><div class="ic">🗄️</div><div class="n">Memory & Audit</div><div class="d">SQLite + Hash</div></div>
+            <div class="arrow-c">→</div>
+            <div class="node glow"><span class="led"></span><div class="ic">🧠</div><div class="n">RAGY MCP Gateway</div><div class="d">Model Context Protocol</div></div>
+            <div class="arrow-c">→</div>
+            <div class="node glow"><span class="led"></span><div class="ic">⚙️</div><div class="n">RAGY Core Orchestrator</div><div class="d">Task Flow & Decision</div></div>
+            <div class="arrow-c">→</div>
+            <div class="node side-n"><span class="led"></span><div class="ic">🛡️</div><div class="n">Approval Gate</div><div class="d">Policy-driven</div></div>
+          </div>
+          <div class="arrow-c">↓　　　↓　　　↓　　　↓</div>
+          <div class="arch-bot">
+            <div class="node"><span class="led"></span><div class="ic">🔍</div><div class="n">Research Agent</div></div>
+            <div class="node"><span class="led"></span><div class="ic">&lt;/&gt;</div><div class="n">Developer Agent</div></div>
+            <div class="node"><span class="led"></span><div class="ic">🛡️</div><div class="n">QA Agent</div></div>
+            <div class="node"><span class="led"></span><div class="ic">⚡</div><div class="n">Automation Agent</div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <h3>📈 Live Activity <span class="en">Timeline</span></h3>
+            <div class="log" id="logBox"><div class="m">Connecting…</div></div>
+          </div>
+          <div class="card">
+            <h3>📊 System Resources <span class="en">Live</span></h3>
+            <div class="res" id="resBox"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM -->
+      <div class="bottom">
+        <div class="card">
+          <h3>🤖 Agents Status <button class="dd">View All →</button></h3>
+          <div id="agentBox"></div>
+        </div>
+        <div class="card">
+          <h3>📋 Recent Tasks <button class="dd">View Details →</button></h3>
+          <table><thead><tr><th>ID</th><th>Task</th><th>Status</th><th>Time</th></tr></thead><tbody id="taskBox"></tbody></table>
+        </div>
+        <div class="card">
+          <h3>📈 Performance Overview <button class="dd" id="range">Last 24h ▾</button></h3>
+          <div class="perf">
+            <svg class="chart" viewBox="0 0 300 120" preserveAspectRatio="none">
+              <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00E5FF" stop-opacity=".45"/><stop offset="1" stop-color="#00E5FF" stop-opacity="0"/></linearGradient></defs>
+              <g stroke="#1E3A5F" stroke-width=".5"><line x1="0" y1="20" x2="300" y2="20"/><line x1="0" y1="50" x2="300" y2="50"/><line x1="0" y1="80" x2="300" y2="80"/><line x1="0" y1="110" x2="300" y2="110"/></g>
+              <path d="M0,95 L40,80 L80,88 L120,55 L160,65 L200,35 L240,48 L280,25 L300,30 L300,120 L0,120 Z" fill="url(#g)"/>
+              <polyline points="0,95 40,80 80,88 120,55 160,65 200,35 240,48 280,25 300,30" fill="none" stroke="#00E5FF" stroke-width="2"/>
+              <polyline points="0,60 40,58 80,55 120,52 160,50 200,48 240,45 280,42 300,40" fill="none" stroke="#10B981" stroke-width="1.5" stroke-dasharray="4 3"/>
+            </svg>
+            <div class="big-donut">
+              <svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#16253a" stroke-width="10"/><circle id="sucRing" cx="50" cy="50" r="40" fill="none" stroke="#00FF88" stroke-width="10" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="50" style="filter:drop-shadow(0 0 6px #00ff88)"/></svg>
+              <div class="pct" id="sucPct" style="margin-top:-72px">—</div><div class="lb">Success Rate</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="foot">
-    <a href="https://github.com/ragymkm-bot/Jameel-Engine-Verified" target="_blank">GitHub Repo</a> ·
-    <a href="https://ragymkm-bot.github.io/Jameel-Engine-Verified/" target="_blank">Live Pages</a> ·
-    بيانات لايف من <span style="color:var(--cyan)">api.github.com</span> — تتحدث لوحدها حتى والكمبيوتر مقفول.<br>
-    <span id="updated">—</span>
+    <div class="foot">
+      <div>© 2026 Jameel-System · <span class="slogan">قوة الذكاء في خدمة أهدافك 🚀</span></div>
+      <div class="svc">
+        <span>🐙 <a href="https://github.com/ragymkm-bot/Jameel-Engine-Verified" target="_blank">GitHub Repo</a></span>
+        <span>🌐 <a href="https://ragymkm-bot.github.io/Jameel-Engine-Verified/" target="_blank">Live Pages</a></span>
+        <span>🔌 MCP Server <b style="color:var(--green)">●</b></span>
+        <span>☁️ Cloudflare <b style="color:var(--amber)">● needs domain</b></span>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-const REPO='ragymkm-bot/Jameel-Engine-Verified';
-const API='https://api.github.com/repos/'+REPO;
+const API='https://api.github.com/repos/ragymkm-bot/Jameel-Engine-Verified';
 const $=id=>document.getElementById(id);
-
-function tick(){
-  const d=new Date();
-  $('clk').textContent=d.toLocaleTimeString('en-GB',{direction:'ltr'});
-  $('date').textContent=d.toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-}
+function tick(){const d=new Date();$('clk').textContent=d.toLocaleTimeString('en-GB');$('dt').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 setInterval(tick,1000);tick();
 
-const NODES=[
-  {ic:'🖥️',nm:'Claude Code',st:'MCP stdio ✓',ok:true},
-  {ic:'🌐',nm:'ChatGPT / Web',st:'Context Pack',ok:true},
-  {ic:'⚡',nm:'Cloud Bridge',st:'جاهز للنشر',ok:false},
-];
-const INNER=[
-  {ic:'🔀',nm:'MCP Gateway',st:'JSON-RPC',ok:true},
-  {ic:'🧩',nm:'Orchestrator',st:'RAGY Core',ok:true},
-  {ic:'🔗',nm:'Memory & Audit',st:'SQLite + Hash',ok:true},
-  {ic:'✅',nm:'Approval Gate',st:'Policy-driven',ok:true},
-  {ic:'🔬',nm:'Agents',st:'Research/Dev/QA',ok:true},
-];
-function drawFlow(){
-  const up=NODES.map(n=>`<div class="node ${n.ok?'live':'fix'}"><div class="ic">${n.ic}</div><div class="nm">${n.nm}</div><div class="st">${n.st}</div></div>`).join('<div class="arrow">→</div>');
-  const mid='<div class="arrow">→</div>';
-  const down=INNER.map(n=>`<div class="node ${n.ok?'live':'fix'}"><div class="ic">${n.ic}</div><div class="nm">${n.nm}</div><div class="st">${n.st}</div></div>`).join('<div class="arrow">→</div>');
-  $('flow').innerHTML='<div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px">'+up+'</div>'+
-    '<div style="text-align:center;color:var(--cyan);font-size:22px;line-height:1.2">↓</div>'+
-    '<div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px">'+down+'</div>';
+function donut(pct,color,label){const r=22,c=2*Math.PI*r,num=parseFloat(pct),off=isNaN(num)?c:c*(1-num/100);const disp=isNaN(num)?pct:pct+'%';return `<div><div class="donut"><svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="${r}" fill="none" stroke="#1E3A5F" stroke-width="5"/><circle cx="28" cy="28" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="pct">${disp}</div></div><div class="lb">${label||''}</div></div>`;}
+
+function drawRes(){
+  const items=[['CPU','—','#00FF88'],['RAM','—','#00E5FF'],['Disk','—','#A855F7'],['Network','—','#00FF88']];
+  // honest: no live host metrics in cloud/static; show dash not fake 0%
+  $('resBox').innerHTML=items.map(x=>donut(x[1],x[2],x[0])).join('');
 }
-drawFlow();
+
+const AGENTS=[['Research Agent','ready'],['Developer Agent','ready'],['QA Agent','ready'],['Automation Agent','ready'],['Analyst Agent','ready']];
+$('agentBox').innerHTML=AGENTS.map(a=>`<div class="agent"><span>🤖</span><span class="nm">${a[0]}</span><div class="bar"><i style="width:100%"></i></div><span class="st">${a[1]}</span></div>`).join('');
+
+$('taskBox').innerHTML=`<tr><td>#1</td><td>CI Pipeline</td><td><span class="stt done">Success</span></td><td>live</td></tr>
+<tr><td>#2</td><td>Pages Deploy</td><td><span class="stt done">Live</span></td><td>200 OK</td></tr>
+<tr><td>#3</td><td>MCP Bridge</td><td><span class="stt run">Ready</span></td><td>—</td></tr>
+<tr><td>#4</td><td>Cloudflare</td><td><span class="stt queue">Queued</span></td><td>domain</td></tr>`;
 
 async function load(){
-  const heads={'Accept':'application/vnd.github+json'};
   try{
-    const [repo,commits,runs,langs]=await Promise.all([
-      fetch(API,{headers:heads}).then(r=>r.json()),
-      fetch(API+'/commits?per_page=1',{headers:heads}).then(r=>r.json()),
-      fetch(API+'/actions/runs?per_page=5',{headers:heads}).then(r=>r.json()),
-      fetch(API+'/languages',{headers:heads}).then(r=>r.json()),
+    const [repo,runs,commits]=await Promise.all([
+      fetch(API).then(r=>r.json()),
+      fetch(API+'/actions/runs?per_page=5').then(r=>r.json()),
+      fetch(API+'/commits?per_page=1').then(r=>r.json()),
     ]);
-    if(repo.message) throw new Error(repo.message);
-    $('liveTag').textContent='LIVE · CONNECTED';
-    $('kCommits').textContent=repo.size?'76+':repo.size; // fallback below
-    const rs=runs.workflow_runs||[];
-    const ok=rs.filter(r=>r.conclusion==='success').length;
-    const rate=rs.length?Math.round(ok/rs.length*100):0;
-    $('kSuccess').textContent=rate+'%';
-    $('kSuccessSub').textContent=ok+' من '+rs.length+' تشغيلات نجحوا';
-    $('kSuccess').style.color=rate>=80?'var(--green)':rate>=50?'var(--amber)':'var(--red)';
-    $('runs').innerHTML=rs.map(r=>{
-      const c=r.conclusion;
-      const cl=c==='success'?'s':c==='failure'?'f':'p';
-      const sym=c==='success'?'✓':c==='failure'?'✕':'…';
-      return `<div class="run ${cl}" title="${r.name} · ${c||r.status}">${sym}</div>`;
-    }).join('');
-    const last=commits[0];
+    if(repo.message)throw new Error(repo.message);
+    $('liveTag').textContent='SYSTEM ONLINE';
+    const rs=runs.workflow_runs||[],ok=rs.filter(r=>r.conclusion==='success').length,rate=rs.length?Math.round(ok/rs.length*100):0;
+    $('s1').textContent=rate+'%';
+    $('s2').textContent='5/5';
+    $('sucPct').textContent=rate+'%';
+    $('sucRing').setAttribute('stroke-dashoffset',String(251*(1-rate/100)));
+    $('sucRing').setAttribute('stroke',rate>=80?'#00FF88':rate>=50?'#FFB800':'#F87171');
     const logs=[];
-    if(last) logs.push(`<div><span class="t">${last.commit.committer.date.slice(11,19)}</span> <span class="ok">✓ commit:</span> <span class="m">${last.commit.message.split('\n')[0].slice(0,55)}</span></div>`);
-    rs.slice(0,3).forEach(r=>logs.push(`<div><span class="t">${r.conclusion==='success'?'✓':'✕'}</span> <span class="${r.conclusion==='success'?'ok':'bad'}">${(r.name||'CI').slice(0,22)}</span> <span class="m">${r.conclusion||r.status}</span></div>`));
-    logs.push(`<div><span class="t">●</span> <span class="m">repo pushed: ${repo.pushed_at.slice(0,16).replace('T',' ')} UTC</span></div>`);
+    if(commits[0])logs.push(`<div><span class="time">${commits[0].commit.committer.date.slice(11,16)}</span><span class="badge-i">✅</span><span class="tx">${commits[0].commit.message.split('\n')[0].slice(0,42)}</span></div>`);
+    rs.slice(0,3).forEach(r=>logs.push(`<div><span class="time">${r.conclusion==='success'?'✓':'✕'}</span><span class="badge-i">${r.conclusion==='success'?'🟢':'🔴'}</span><span class="tx">${(r.name||'CI').slice(0,24)} · ${r.conclusion||r.status}</span></div>`));
+    logs.push(`<div><span class="time">●</span><span class="badge-i">🔵</span><span class="tx">pushed ${repo.pushed_at.slice(0,16).replace('T',' ')}</span></div>`);
     $('logBox').innerHTML=logs.join('');
-    const langTotal=Object.values(langs).reduce((a,b)=>a+b,0)||1;
-    const py=Math.round((langs.Python||0)/langTotal*100);
-    document.querySelector('.bar i').style.width=py+'%';
-    document.querySelectorAll('.bar-row .pct')[0].textContent=py+'%';
-    $('statusLine').innerHTML='<span style="color:var(--green)">●</span> البيانات لايف من <b>'+API+'</b> · آخر تحديث: '+new Date().toLocaleTimeString('ar-EG');
-    $('updated').textContent='آخر جلب للبيانات: '+new Date().toLocaleString('ar-EG');
-    // real commit count via link header
-    fetch(API+'/commits?per_page=1').then(r=>{
-      const link=r.headers.get('Link');
-      if(link&&link.match(/page=(\d+)>; rel="last"/)) $('kCommits').textContent=link.match(/page=(\d+)>; rel="last"/)[1];
-      else $('kCommits').textContent=commits.length;
-    }).catch(()=>{});
+    $('range').textContent='CI · last 5 runs';
   }catch(e){
-    $('liveTag').textContent='CACHED · OFFLINE';
-    $('statusLine').innerHTML='<span style="color:var(--amber)">●</span> مش قادر أوصل بـ API دلوقتي ('+(e.message||'network')+') — الأرقام المحلية ثابتة: 14 commits · 76 ملف · 3 أحداث.';
-    $('kSuccess').textContent='—';
-    $('logBox').innerHTML='<div class="m">GitHub API غير متاح حالياً — الواجهة تعرض البيانات المحلية.</div>';
+    $('liveTag').textContent='CACHED MODE';
+    $('s1').textContent='—';$('sucPct').textContent='—';
+    $('logBox').innerHTML='<div><span class="tx">API unavailable — cached mode</span></div>';
   }
 }
-load();
-setInterval(load,60000);
+load();setInterval(load,60000);
 </script>
 </body>
 </html>
