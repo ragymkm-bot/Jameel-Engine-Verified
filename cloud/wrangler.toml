@@ -8,4 +8,4 @@ database_name = "ragy-tasks"
 database_id = "cc39aff6-5cea-4fce-8329-d82521623094"
 
 [vars]
-ALLOWED_ORIGINS = "http://localhost,http://127.0.0.1,https://jameel-ragy-command-center.pages.dev"
+ALLOWED_ORIGINS = "http://localhost,http://127.0.0.1,https://jameel-ragy-command-center.pages.dev,https://ragy-cloud-engine.aragy76.workers.dev"

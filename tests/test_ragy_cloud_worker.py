@@ -97,6 +97,12 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertEqual(code, 401)
         self.assertEqual(body["error"], "unauthorized")
 
+    def test_same_origin_is_allowed(self) -> None:
+        code, _ = call("/mcp", token=self.token,
+                       headers={"Origin": "https://ragy-cloud-engine.aragy76.workers.dev"},
+                       body={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+        self.assertEqual(code, 200)
+
     def test_wrong_token_is_401(self) -> None:
         code, _ = call("/mcp", token="wrong-token",
                        body={"jsonrpc": "2.0", "id": 1, "method": "initialize"})

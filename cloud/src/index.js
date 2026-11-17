@@ -151,7 +151,7 @@ var T=localStorage.getItem('ragy_token');
 if(!T){location.href='/';}
 function H(){return {'Authorization':'Bearer '+T,'Content-Type':'application/json'};}
 function logout(){localStorage.removeItem('ragy_token');location.href='/';}
-function fail(r){if(r.status===401||r.status===403){logout();return true;}return false;}
+function fail(r){if(r.status===401){logout();return true;}return false;}
 function load(){
   fetch('/health').then(function(r){return r.json();}).then(function(j){
     document.getElementById('status').textContent=j.status==='ok'?(j.ready?'متصل ✅':'غير جاهز'):'خطأ';
