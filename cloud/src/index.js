@@ -101,10 +101,39 @@ async function callTool(name, args, env) {
   return { content: [{ type: "text", text: "unknown tool" }], isError: true };
 }
 
+const LANDING = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAGY Cloud — Gate</title>
+<style>body{background:#0b0e14;color:#e8eef7;font-family:system-ui,'Segoe UI',Tahoma;margin:0;display:grid;place-items:center;min-height:100vh}
+.card{background:#121826;border:1px solid #263049;border-radius:16px;padding:28px;width:min(420px,90vw)}
+h1{margin:0 0 6px;font-size:22px}p{color:#9fb0c8;font-size:14px;line-height:1.7}
+input{width:100%;box-sizing:border-box;background:#0b0e14;border:1px solid #2c3a56;color:#e8eef7;padding:12px;border-radius:8px;margin:10px 0}
+button{width:100%;background:#4f8cff;border:0;color:#fff;padding:12px;border-radius:8px;font-weight:bold;cursor:pointer}
+#out{margin-top:14px;font-size:13px;word-break:break-all}</style></head><body>
+<div class="card"><h1>RAGY Cloud Engine</h1><p>المنصة محمية بـ Bearer token. التوكن لا يُحفظ على الخادم ولا يظهر في الرابط — يُخزَّن فقط في هذا المتصفح.</p>
+<input id="tok" type="password" placeholder="RAGY_BRIDGE_TOKEN" autocomplete="off">
+<button onclick="go()">دخول</button><div id="out"></div></div>
+<script>
+function go(){
+  var t=document.getElementById('tok').value.trim();
+  if(!t){document.getElementById('out').textContent='اكتب التوكن أولاً';return;}
+  localStorage.setItem('ragy_token',t);
+  fetch('/audit',{headers:{'Authorization':'Bearer '+t}}).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+  .then(function(x){document.getElementById('out').textContent=x.ok&&x.j.valid?('متصل ✅ — السجل سليم ('+x.j.checked+' حدث). جاهز للوحة التحكم.'):('فشل: '+JSON.stringify(x.j));})
+  .catch(function(e){document.getElementById('out').textContent='خطأ اتصال: '+e.message;});
+}
+</script></body></html>`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (path === "/" && request.method === "GET") {
+      return new Response(LANDING, {
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
 
     if (path === "/health" && request.method === "GET") {
       return json({ status: "ok", service: "ragy-cloud-engine", version: "1.0.0", ready: !!(env.RAGY_BRIDGE_TOKEN || "").trim() });

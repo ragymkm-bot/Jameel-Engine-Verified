@@ -69,6 +69,17 @@ class CloudWorkerTests(unittest.TestCase):
             except subprocess.TimeoutExpired:
                 cls.proc.kill()
 
+    def test_landing_page_is_public_and_api_still_guarded(self) -> None:
+        import urllib.request as _u
+        with _u.urlopen(BASE + "/", timeout=8) as resp:
+            page = resp.read().decode("utf-8", "replace")
+            self.assertEqual(resp.status, 200)
+            self.assertIn("RAGY Cloud Engine", page)
+            self.assertIn("localStorage", page)
+        # the API itself must still reject unauthenticated calls
+        code, body = call("/mcp", body={"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+        self.assertEqual(code, 401)
+
     def test_health_ready_no_secret_leak(self) -> None:
         code, body = call("/health")
         self.assertEqual(code, 200)
