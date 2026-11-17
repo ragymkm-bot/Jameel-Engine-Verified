@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# فقط dependencies خفيفة — مفيش حاجة لتثبيت.sys
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# نسخ الكود
+COPY mcp_stdio_server.py .
+COPY mcp_cloud_bridge.py .
+COPY mcp_server.py .
+COPY CONTEXT_PACK.md .
+COPY README.md .
+
+# مجلد البيانات (فاضي — المفاتيح مش هنا أبداً)
+RUN mkdir -p /app/runtime /app/secrets
+
+ENV PORT=8000
+EXPOSE 8000
+
+CMD ["python", "mcp_cloud_bridge.py"]

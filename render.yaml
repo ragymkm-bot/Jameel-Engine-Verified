@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ragy-mcp-cloud
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python mcp_cloud_bridge.py
+    envVars:
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health
+    autoDeploy: true
