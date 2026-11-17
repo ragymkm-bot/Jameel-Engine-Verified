@@ -300,3 +300,13 @@ sequenceDiagram
 - Smoke: health 200 · no-token 401 · session header مُختبَر في الاختبارات.
 - Zero-leak: `secrets/.vault` فاضي (0 entries) · مفيش توكن في أي ملف مصدر.
 - حدود: idempotency في الذاكرة (process واحد) · محلي فقط · لا Tunnel/Worker/دومين · T7 مستنى إثبات Q1.
+
+## المرحلة 11 — RAGY Cloud: اعتماد الاتجاه ✅ (تصميم، بلا نشر)
+- قرار معتمد: منصة سحابية أونلاين بدل نظام محلي — `RAGY_CLOUD_ARCHITECTURE.md`.
+- الاستضافة المختارة: Cloudflare (Pages واجهة + Worker engine + D1 + KV + Queues) — طبقات مجانية أولًا.
+- الأسرار: Cloudflare Workers Secrets (صفر أسرار في الكود/Git/Notion).
+- إعادة استخدام: secure bridge منطق + stdio handle + SHA-256 audit + execution engine + adapter + لوحة replica.
+- قيد صريح: safe-zone محلي → السحابة تدير وتوزّع، Hermes المحلي ينفّذ مهام الجهاز.
+- بوابات G1–G7 قبل أي اتصال عام — ما حصلش نشر جديد.
+- محتاج من راجي: اسم الدومين + مفاتيح API (عبر Secrets، مش الشات) + موافقة لأي مدفوع.
+- النسخة المحلية سليمة كمرجع: 45/45 اختبار OK، commit `d799099`.
