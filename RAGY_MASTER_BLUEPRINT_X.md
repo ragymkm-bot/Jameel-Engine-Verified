@@ -142,8 +142,8 @@
 |---|---|---|---|
 | هوية/تفضيلات | MEMORY.md + USER.md | WORKING | facts عبر الجلسات |
 | سجل الجلسة | state.db | WORKING | المحادثات |
-| حالة تشغيلية | `runtime/state.sqlite3` | ❌ مفقود | يُنشأ في المرحلة 2 |
-| تدقيق مشفر | `runtime/audit.jsonl` | PARTIAL | SHA-256 chain |
+| حالة تشغيلية | `runtime/state.sqlite3` | ✅ WORKING | 28KB - أُنشئ بعد `main.py --approve` |
+| تدقيق مشفر | `runtime/audit.jsonl` | ✅ WORKING | 11 حدث + SHA-256 verify=True |
 | معرفة مشتركة | Notion (AI Command Center) | VERIFIED | توثيق القرارات |
 | سياق خارجي | CONTEXT_PACK.md | VERIFIED | ChatGPT/browser |
 | مهارات | ~/.hermes/skills/ | WORKING | إجراءات قابلة لإعادة الاستخدام |
@@ -169,11 +169,10 @@
 - المخرج: تقرير التدقيق الجنائي (14 قسماً) + هذا الـ Blueprint.
 - معيار القبول: جرد كل file/commit/feature + تمييز الدليل عن الاستنتاج. ✅
 
-### المرحلة 2 — RAGY CORE (الأولوية القادمة)
-- المتطلبات: إصلاح config.yaml (بخطوة ريس) → تهيئة SQLite → استعادة Audit.
-- الاعتماديات: موافقة ريس على تعديل config (قاعدة أمان).
-- المخاطر: فقدان إعدادات لو غيّرنا السطر غلط → النسخة الاحتياطية موجودة.
-- معيار القبول: `hermes config check` ناجح + `state.sqlite3` فيه tables + أحداث `RouteTask` تُسجَّل.
+### المرحلة 2 — RAGY CORE ✅ مكتملة
+- المتطلبات: config.yaml ✅ · SQLite ✅ · Audit ✅ · 12/12 اختبار ✅.
+- الدليل: `Config version 52 ✓` · `state.sqlite3` 28KB · audit 11 حدث verify=True · CI success.
+- معيار القبول: تحقّق بالكامل (انظر 2.2).
 
 ### المرحلة 3 — UNIFIED AI GATEWAY
 - المتطلبات: توحيد stdio + HTTP + Notion + CF في بوابة واحدة بصلاحيات.
@@ -203,8 +202,8 @@
 - ✅ نسبة الاختبارات الناجحة (CI)
 - ⬜ زمن إنجاز المهمة
 - ⬜ عدد الأخطاء المتكررة
-- ⬜ سلامة سجل التدقيق (بعد المرحلة 2)
-- ⬜ إمكانية الاستعادة بعد الفشل (backup موجود)
+- ✅ سلامة سجل التدقيق (verify=True, 11 حدث)
+- ✅ إمكانية الاستعادة بعد الفشل (backup موجود + soft reset ناجح)
 - ✅ عدم وجود تنفيذ غير مصرح به (قواعد الأمان)
 
 ---
@@ -245,4 +244,4 @@ sequenceDiagram
 - Skill: `ragy-cloud-deployment`
 
 ---
-**الخلاصة:** الـ Blueprint ده مش خطة أحلام — هو مطابقةBetween الرؤية اللي اعتمدتها واللي التدقيق لقاه فعلاً. المرحلة 1 خلصت. المرحلة 2 مستنية خطوتك في config.yaml عشان نبدأ.
+**الخلاصة المحدّثة (2026-11-18):** المرحلة 1 (التدقيق) والمرحلة 2 (Core) مكتملتين بالدليل — 12/12 اختبار، CI أخضر، audit سليم، config مصحح. المرحلة 3 (Gateway) جارية: stdio + HTTP + 4 MCP servers شغالين، Notion وCloudflare جاهزين (CF auth محتاج تجديد من الريس). المرحلة 5 (Command Center) اتحدّثت بأرقام حقيقية (17 commits / 15 runs / 93%). n8n وCodex بيتثبتوا محلياً على Node 20 (بدون تغيير النظام). لم يُدعَ أي شيء غير مُختبَر.
