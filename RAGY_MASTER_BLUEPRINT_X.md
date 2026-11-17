@@ -72,9 +72,9 @@
 | 7 | `secrets/.vault` = 0 bytes | ⚠️ مقصود | فاضي عمداً = مفيش أسرار في الشات/الكود؛ جاهز للتشفير عند أول استخدام مصرح |
 | 8 | `__pycache__` متتبع | ✅ اتصلح | `.gitignore` أُضيف (202 bytes) |
 
-**نتائج التحقق النهائية:** 12/12 اختبار ✅ · audit chain valid ✅ · URL Status 200 ×2 ✅ · 3/3 workflows success ✅
+**نتائج التحقق النهائية:** 12/12 اختبار ✅ · audit chain valid ✅ · URL Status 200 ×2 ✅ · 3/3 workflows success ✅ · Codex CLI 0.170.0 ✅ (محلي Node 20) · config 52 ✓ · 19 commit / 80 ملف.
 
-**ملاحظة صريحة:** ن8n وChatGPT/Codex المباشر لسه تحت human gate (تغيير Node / تثبيت CLI / OAuth من جهة الريس). لم يُدعَ أي شيء غير مُختبَر.
+**ملاحظة صريحة:** Codex CLI اتنصّب محلياً (0.170.0 — يعمل). ChatGPT مباشر لسه تحت human gate (OAuth من جهة الريس). n8n لسه بيحاول (Node 20 محلي + PATH مظبوط؛ النسخة v26 كانت بتكسر الـ native build). لم يُدعَ أي شيء غير مُختبَر.
 
 ### 2.3 ما يجب الحفاظ عليه (Do NOT touch)
 - الـ 76 ملف والـ commits كلها.
