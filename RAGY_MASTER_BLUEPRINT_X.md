@@ -358,3 +358,10 @@ sequenceDiagram
 - المفتاح يُرفع عبر `bash cloud/setup_copilot_key.sh` من ملف محلي مستبعد من git (مش في الشات).
 - مسألة auth: OAuth token منتهي → اتجدّد عبر refresh_token بـ client_id الصحيح من `wrangler login --browser false`.
 - لايف: Version `19073021` · `/ui` 33840 bytes · Copilot guard يعمل · 61/61 OK.
+
+## المرحلة 17 — RAGY Copilot لايف ✅ (مفتاح OpenRouter مُرفوع)
+- المفتاح اترفع كـ Cloudflare Secret `OPENROUTER_API_KEY` من ملف محلي مستبعد من git — ما ظهرش في الشات/Git.
+- Fallback chain من 5 نماذج مجانية (ling / gemma / lfm / nemotron / ernie) — بيتخطّى أي 429/503 تلقائيًا.
+- لايف مُثبت: سؤال عربي → ردّ بالعربي من RAG + `fallback_count` + model مُحدَّد.
+-finding اتصحّح: النموذج كتب "Multi-Command Protocol" → أضفنا تثبيت صريح في system prompt إن MCP = **Model Context Protocol** (اتحقق: False للغلطة).
+- 61/61 OK · Version `7a332708`.
