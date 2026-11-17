@@ -38,8 +38,9 @@ function extractTool(answer) {
   }
 }
 
-export async function askCopilot(question, env) {
-  const key = (env.OPENROUTER_API_KEY || "").trim();
+export async function askCopilot(question, env, secretLookup = null) {
+  let key = (env.OPENROUTER_API_KEY || "").trim();
+  if (!key && secretLookup) key = (await secretLookup("OPENROUTER_API_KEY") || "").trim();
   if (!key) throw new Error("OPENROUTER_API_KEY secret is not configured on this Worker");
   const q = String(question || "").trim();
   if (!q) throw new Error("question is required");

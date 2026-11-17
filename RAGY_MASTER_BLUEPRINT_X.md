@@ -441,3 +441,12 @@ sequenceDiagram
 - finding أمني اتصلّح: الـ status كان مفتوح 200 → بقى 401 بدون توكن + اختبار `test_wa_status_requires_bearer`.
 - 68/68 OK · Version `9c499030`.
 - **جاهز لاستقبال الأسرار عبر `wrangler secret put` من جهاز راجي — مش في الشات.**
+
+## المرحلة 23 — محفظة أسرار + إصلاح القايمة الجانبية ✅
+- `cloud/src/vault.js`: AES-GCM تشفير في D1 · المفتاح مشتق من `RAGY_BRIDGE_TOKEN` · **القيم ما تُر Manufacturingش أبدًا** (أسماء + تواريخ بس).
+- أدوات: vault_list · vault_put · vault_delete (بـ confirm).
+- Copilot/WhatsApp يقرأ من الـ env أولاً then Vault كـ fallback.
+- واجهة `/app`: قسم 🔐 محفظة + زر حفظ + عرض الأسماء فقط + زر فحص واتساب.
+- **إصلاح القايمة:** `/app` كان مفيهوش `id="workflows"` → الـ anchors ما كانتش شغالة. أضفنا IDs لكل الأقسام + `scrollIntoView` عند التحميل.
+- متحقق بالمتصفح: nav → `/app#approvals` ✅ + vault card + workflows anchor موجودين.
+- 69/69 OK · Version `8f25b0c2`.

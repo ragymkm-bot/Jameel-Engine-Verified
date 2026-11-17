@@ -131,7 +131,8 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertEqual(names, ["list_tasks", "get_task", "create_task", "verify_audit",
                                  "create_automation", "list_automations", "run_automation", "list_runs",
                                  "post_command", "list_commands", "delete_automation", "delete_command",
-                                 "ask_copilot", "create_client", "list_clients", "client_usage", "client_automations"])
+                                 "ask_copilot", "create_client", "list_clients", "client_usage", "client_automations",
+                                 "vault_list", "vault_put", "vault_delete"])
         code, body = call("/mcp", token=self.token,
                           body={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(code, 200)
@@ -198,6 +199,26 @@ class CloudWorkerTests(unittest.TestCase):
                       capture_output=True, text=True, timeout=45).stdout
         self.assertIn("cloud.automation.started", out)
         self.assertIn("cloud.automation.finished", out)
+
+    def test_vault_roundtrip_and_no_value_leak(self) -> None:
+        def tool(name, args):
+            return call("/mcp", token=self.token,
+                        body={"jsonrpc": "2.0", "id": 30, "method": "tools/call",
+                              "params": {"name": name, "arguments": args}})
+        secret = "vault-test-value-" + __import__("uuid").uuid4().hex[:8]
+        # store
+        _, body = tool("vault_put", {"key_name": "TEST_SECRET", "value": secret})
+        self.assertTrue(json.loads(body["result"]["content"][0]["text"])["stored"])
+        # listing must NOT contain the value
+        _, body = tool("vault_list", {})
+        listed = json.dumps(json.loads(body["result"]["content"][0]["text"]))
+        self.assertIn("TEST_SECRET", listed)
+        self.assertNotIn(secret, listed)
+        # delete requires confirm
+        _, body = tool("vault_delete", {"key_name": "TEST_SECRET"})
+        self.assertTrue(json.loads(body["result"]["content"][0]["text"]).get("error"))
+        _, body = tool("vault_delete", {"key_name": "TEST_SECRET", "confirm": "DELETE"})
+        self.assertTrue(json.loads(body["result"]["content"][0]["text"])["deleted"])
 
     def test_wa_status_requires_bearer(self) -> None:
         code, body = call("/whatsapp/status")

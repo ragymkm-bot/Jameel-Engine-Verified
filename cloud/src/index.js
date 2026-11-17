@@ -6,6 +6,7 @@ import { appendEvent, verifyChain } from "./audit.js";
 import UI_HTML from "./ui-embedded.js";
 import { askCopilot, COPILOT_MODEL } from "./copilot.js";
 import { verifyWebhook, validSignature, extractMessages, sendText, isConfigured as waConfigured } from "./whatsapp.js";
+import { putSecret, getSecret, listSecrets, deleteSecret } from "./vault.js";
 
 const MAX_IDEMPOTENCY = 512;
 const RATE_WINDOW_MS = 60_000;
@@ -100,6 +101,9 @@ const TOOLS = [
   { name: "list_clients", description: "List all client workspaces" },
   { name: "client_usage", description: "Usage/limits for a client: {client_id}" },
   { name: "client_automations", description: "Automations for one client: {client_id}" },
+  { name: "vault_list", description: "List secret names in the encrypted vault (never values)" },
+  { name: "vault_put", description: "Store an encrypted secret: {key_name, value}" },
+  { name: "vault_delete", description: "Delete a secret: {key_name, confirm:'DELETE'}" },
 ];
 
 function textResult(value) {
@@ -286,9 +290,25 @@ async function callTool(name, args, env, ctx = {}) {
     ).bind(id).all();
     return textResult(results || []);
   }
+  if (name === "vault_list") {
+    return textResult(await listSecrets(env));
+  }
+  if (name === "vault_put") {
+    try {
+      const r = await putSecret(env, args?.key_name, args?.value);
+      await appendEvent(env.DB, "cloud.vault.stored", ctx.actor || "ragy-cloud-engine", null, { key_name: r.key_name });
+      return textResult(r);
+    } catch (error) { return { ...textResult({ error: String(error).slice(0, 300) }), isError: true }; }
+  }
+  if (name === "vault_delete") {
+    if (args?.confirm !== "DELETE") return { ...textResult({ error: "confirm must be 'DELETE'" }), isError: true };
+    const r = await deleteSecret(env, args?.key_name);
+    await appendEvent(env.DB, "cloud.vault.deleted", ctx.actor || "ragy-cloud-engine", null, { key_name: r.key_name });
+    return textResult(r);
+  }
   if (name === "ask_copilot") {
     try {
-      const reply = await askCopilot(args?.question, env);
+      const reply = await askCopilot(args?.question, env, (k)=>getSecret(env,k));
       await appendEvent(env.DB, "cloud.copilot.asked", ctx.actor || "ragy-cloud-engine", ctx.request_id || null,
                         { model: COPILOT_MODEL, has_tool: !!reply.tool });
       return textResult(reply);
@@ -338,12 +358,12 @@ a{color:#8ab4ff;text-decoration:none}
 </style></head><body>
 <header><h1>RAGY Cloud Console</h1><div><a href="https://github.com/ragymkm-bot/Jameel-Engine-Verified" target="_blank">GitHub ↗</a> · <button onclick="logout()">خروج</button></div></header>
 <div class="grid">
-<div class="card"><h2>الحالة</h2><div class="v" id="status">…</div><div class="muted" id="ver">—</div></div>
-<div class="card"><h2>سلسلة التدقيق</h2><div class="v" id="audit">…</div><div class="muted" id="auditd">—</div></div>
-<div class="card"><h2>المهام</h2><div class="v" id="tasks">…</div><div class="muted">من D1 السحابي</div></div>
+<div class="card" id="cost"><h2>الحالة</h2><div class="v" id="status">…</div><div class="muted" id="ver">—</div></div>
+<div class="card" id="route"><h2>سلسلة التدقيق</h2><div class="v" id="audit">…</div><div class="muted" id="auditd">—</div></div>
+<div class="card" id="tasks"><h2>المهام</h2><div class="v" id="tasksCount">…</div><div class="muted">من D1 السحابي</div></div>
 <div class="card"><h2>الأدوات المتاحة</h2><pre id="tools">—</pre></div>
 <div class="card" style="grid-column:1/-1"><h2>آخر الأحداث</h2><pre id="events">—</pre></div>
-<div class="card" style="grid-column:1/-1">
+<div class="card" id="workflows" style="grid-column:1/-1">
 <h2>🏭 Automation Studio — اصنع وشغّل أتمتة</h2>
 <p class="muted">خطوات متاحة: create_task · list_tasks · verify_audit · list_automations · list_runs. ممنوع التكرار (/create_automation / run_automation) جوه الخطوات.</p>
 <input id="aname" placeholder="اسم الأتمتة (مثلاً: فحص يومي)">
@@ -353,7 +373,7 @@ a{color:#8ab4ff;text-decoration:none}
 <div class="muted" style="margin-top:14px">الأتمتات: <span id="alist">—</span></div>
 <div class="muted" style="margin-top:6px">التشغيلات: <span id="aruns">—</span></div>
 </div>
-<div class="card" style="grid-column:1/-1">
+<div class="card" id="commands" style="grid-column:1/-1">
 <h2>📤 قائمة أوامر الجهاز (Hermes Bridge)</h2>
 <p class="muted">الأوامر هنا بتتنفّذ على جهازك عن طريق Hermes. اكتب أمر وسيبه قيد الانتظار — الـ bridge هيقرأه وينفّذه ويرجّع النتيجة هنا.</p>
 <input id="ctask" placeholder="مثلاً: اقرأ README.md أو اعمل بحث سريع">
@@ -361,7 +381,7 @@ a{color:#8ab4ff;text-decoration:none}
 <pre id="cmsg" style="margin-top:10px">—</pre>
 <div class="muted" style="margin-top:8px">الأوامر: <span id="clist">—</span></div>
 </div>
-<div class="card" style="grid-column:1/-1">
+<div class="card" id="clients" style="grid-column:1/-1">
 <h2>👥 إدارة العملاء (Clients)</h2>
 <p class="muted">كل عميل مساحة منفصلة بحد أتمتات خاص. Free=5 · Pro=50 · Enterprise=1000.</p>
 <input id="cname" placeholder="اسم العميل">
@@ -376,6 +396,15 @@ a{color:#8ab4ff;text-decoration:none}
 <p class="muted">الأسرار تُرفع من جهازك بـ <span dir="ltr">wrangler secret put</span> — ما تكتبهاش هنا ولا في الشات.</p>
 <button class="btn ghost" onclick="loadWaStatus()">فحص الحالة</button>
 <pre id="waStatus" style="margin-top:8px">—</pre>
+</div>
+<div class="card" id="vault" style="grid-column:1/-1">
+<h2>🔐 محفظة الأسرار (Encrypted Vault)</h2>
+<p class="muted">مشفّرة بـ AES-GCM في D1 — القيم ما تظهرش تاني بعد الحفظ. المفتاح مشتق من Secret موجود أصلاً.</p>
+<input id="vKey" placeholder="اسم السر (مثال: WHATSAPP_TOKEN)" style="background:#0b0e14;border:1px solid #2c3a56;color:#e8eef7;padding:10px;border-radius:8px">
+<input id="vVal" type="password" placeholder="القيمة (مخفية)" style="background:#0b0e14;border:1px solid #2c3a56;color:#e8eef7;padding:10px;border-radius:8px;margin-inline-start:8px">
+<button onclick="vaultPut()">حفظ مشفّر</button>
+<pre id="vaultMsg" style="margin-top:8px">—</pre>
+<div class="muted">الأسرار المحفوظة (أسماء فقط): <span id="vaultList">—</span></div>
 </div>
 </div>
 <script>
@@ -486,7 +515,21 @@ function loadWaStatus(){
     document.getElementById('waStatus').textContent=JSON.stringify(j,null,2);
   }).catch(function(e){document.getElementById('waStatus').textContent='خطأ: '+e.message;});
 }
-load();loadLists();loadCommands();loadClients();loadWaStatus();setInterval(function(){load();loadLists();loadCommands();loadClients();loadWaStatus();},15000);
+function vaultPut(){
+  var k=document.getElementById('vKey').value.trim(),v=document.getElementById('vVal').value.trim();
+  if(!k||!v){document.getElementById('vaultMsg').textContent='اكتب الاسم والقيمة';return;}
+  call('vault_put',{key_name:k,value:v}).then(function(j){
+    document.getElementById('vaultMsg').textContent=j&&j.error?j.error:('تم الحفظ المشفّر: '+k);
+    document.getElementById('vVal').value='';loadVault();
+  });
+}
+function loadVault(){
+  call('vault_list',{}).then(function(j){
+    document.getElementById('vaultList').textContent=j&&j.length?j.map(function(s){return s.key_name+' ('+s.updated_at.slice(0,10)+')';}).join(' · '):'لا أسرار محفوظة';
+  });
+}
+if(location.hash){var sec=document.getElementById(location.hash.slice(1));if(sec)setTimeout(function(){sec.scrollIntoView();},300);}
+load();loadLists();loadCommands();loadClients();loadWaStatus();loadVault();setInterval(function(){load();loadLists();loadCommands();loadClients();loadWaStatus();loadVault();},15000);
 </script></body></html>`;
 
 export default {
@@ -512,7 +555,7 @@ export default {
       try { body = await request.json(); }
       catch { return json({ error: "invalid json" }, 400); }
       try {
-        const reply = await askCopilot(body?.question, env);
+        const reply = await askCopilot(body?.question, env, (k)=>getSecret(env,k));
         await appendEvent(env.DB, "cloud.copilot.asked", "ragy-copilot", null,
                           { model: COPILOT_MODEL, has_tool: !!reply.tool });
         // caller may ask Copilot to execute a tool from its answer
@@ -582,7 +625,7 @@ export default {
             const posted = await callTool("post_command", { task }, env, { actor: "whatsapp:" + msg.from });
             reply = "تم إرسال الأمر إلى Hermes:\n" + (posted.content?.[0]?.text || "");
           } else {
-            const answer = await askCopilot(msg.text, env);
+            const answer = await askCopilot(msg.text, env, (k)=>getSecret(env,k));
             reply = answer.answer || "لم أتمكن من الإجابة";
           }
           await sendText(msg.from, reply, env);
