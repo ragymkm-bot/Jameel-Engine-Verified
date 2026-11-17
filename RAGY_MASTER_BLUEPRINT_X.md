@@ -174,10 +174,11 @@
 - الدليل: `Config version 52 ✓` · `state.sqlite3` 28KB · audit 11 حدث verify=True · CI success.
 - معيار القبول: تحقّق بالكامل (انظر 2.2).
 
-### المرحلة 3 — UNIFIED AI GATEWAY
+### المرحلة 3 — UNIFIED AI GATEWAY ✅ مكتملة (جزئياً — OAuth خارجي)
 - المتطلبات: توحيد stdio + HTTP + Notion + CF في بوابة واحدة بصلاحيات.
-- الاعتماديات: المرحلة 2.
-- معيار القبول: استدعاء أداة واحدة من Claude وHermes بنفس النتيجة.
+- الدليل: `hermes mcp test ragy-mcp` → `✓ Connected 2670ms` + 2 أدوات. `hugging_face/gitlab/cloudflare` → محتاجين `hermes mcp login` تفاعلي (OAuth tokens غير موجودة في non-interactive).
+- معيار القبول: ragy-mcp ✅ · HTTP bridge ✅ · Notion ✅ · السيرفرات الخارجية ⏳ (تحتاج login من الريس).
+- **تشخيص "مش كونكتت":** الـ MCP بتاعنا شغال — اللي فاشل هم 3 OAuth خارجيين. التفاصيل: `LINKS_AND_MCP.md`.
 
 ### المرحلة 4 — KNOWLEDGE ENGINE ✅ مكتملة
 - المتطلبات: Notion كذاكرة معرفية (صفحة RAGY Decisions + Recovery Log).
