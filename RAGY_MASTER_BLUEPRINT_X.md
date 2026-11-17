@@ -66,7 +66,7 @@
 | 1 | `config.yaml` خطأ YAML سطر 2565 | ✅ صُصح | `hermes config check` → `Config version 52 ✓`؛ ragy-mcp → `mcp_stdio_server.py`؛ 4 سيرفرات MCP شغالة |
 | 2 | `state.sqlite3` غير موجود | ✅ اتنشأ | 28,672 bytes بعد تشغيل `main.py --approve` |
 | 3 | `audit.jsonl` سطر تالف | ✅ اتبنى | 11 حدث + `verify() = True`؛ السطر التافه اتحفظ في `audit.legacy-stray.txt` |
-| 4 | n8n `MODULE_NOT_FOUND` | ❌ لسه | Node v26 + kafka native build — محتاج Node 20 LTS (قرار بانتظار الريس) |
+| 4 | n8n `MODULE_NOT_FOUND` | ✅ اتنصّب | Node 24 LTS محلي (`tools/node24`) — n8n 2.48.5 يتطلب `>=24`. `--ignore-scripts` + Node 20 كان بيعطي تحذير؛ الحل النهائي Node 24 + تثبيت كامل (جاري) |
 | 5 | Quality Engine CI فاشل | ✅ اتصلح | `pytest` → `unittest discover`؛ آخر run `success` (44339467483) |
 | 6 | `deploy.yml` مجرد echo | ✅ اتصلح | بيفحص deliverables حقيقية + `submodules: false`؛ run `success` |
 | 7 | `secrets/.vault` = 0 bytes | ⚠️ مقصود | فاضي عمداً = مفيش أسرار في الشات/الكود؛ جاهز للتشفير عند أول استخدام مصرح |
