@@ -119,9 +119,61 @@ function go(){
   if(!t){document.getElementById('out').textContent='اكتب التوكن أولاً';return;}
   localStorage.setItem('ragy_token',t);
   fetch('/audit',{headers:{'Authorization':'Bearer '+t}}).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
-  .then(function(x){document.getElementById('out').textContent=x.ok&&x.j.valid?('متصل ✅ — السجل سليم ('+x.j.checked+' حدث). جاهز للوحة التحكم.'):('فشل: '+JSON.stringify(x.j));})
+  .then(function(x){if(x.ok&&x.j.valid){document.getElementById('out').textContent='تم ✅ — جاري فتح اللوحة...';location.href='/app';}else{document.getElementById('out').textContent='فشل: '+JSON.stringify(x.j);}})
   .catch(function(e){document.getElementById('out').textContent='خطأ اتصال: '+e.message;});
 }
+</script></body></html>`;
+
+const CONSOLE = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAGY Cloud — Console</title>
+<style>
+:root{color-scheme:dark}body{background:#0b0e14;color:#e8eef7;font-family:system-ui,'Segoe UI',Tahoma;margin:0;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+h1{margin:0;font-size:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:#121826;border:1px solid #263049;border-radius:14px;padding:18px}
+.card h2{margin:0 0 12px;font-size:15px;color:#9fb0c8}.v{font-size:26px;font-weight:bold}
+.ok{color:#4ade80}.bad{color:#f87171}.muted{color:#9fb0c8;font-size:13px}
+pre{background:#0b0e14;border:1px solid #263049;border-radius:8px;padding:10px;overflow:auto;max-height:260px;font-size:12px}
+button{background:#4f8cff;border:0;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer}
+a{color:#8ab4ff;text-decoration:none}
+</style></head><body>
+<header><h1>RAGY Cloud Console</h1><div><a href="https://github.com/ragymkm-bot/Jameel-Engine-Verified" target="_blank">GitHub ↗</a> · <button onclick="logout()">خروج</button></div></header>
+<div class="grid">
+<div class="card"><h2>الحالة</h2><div class="v" id="status">…</div><div class="muted" id="ver">—</div></div>
+<div class="card"><h2>سلسلة التدقيق</h2><div class="v" id="audit">…</div><div class="muted" id="auditd">—</div></div>
+<div class="card"><h2>المهام</h2><div class="v" id="tasks">…</div><div class="muted">من D1 السحابي</div></div>
+<div class="card"><h2>الأدوات المتاحة</h2><pre id="tools">—</pre></div>
+<div class="card" style="grid-column:1/-1"><h2>آخر الأحداث</h2><pre id="events">—</pre></div>
+</div>
+<script>
+var T=localStorage.getItem('ragy_token');
+if(!T){location.href='/';}
+function H(){return {'Authorization':'Bearer '+T,'Content-Type':'application/json'};}
+function logout(){localStorage.removeItem('ragy_token');location.href='/';}
+function fail(r){if(r.status===401||r.status===403){logout();return true;}return false;}
+function load(){
+  fetch('/health').then(function(r){return r.json();}).then(function(j){
+    document.getElementById('status').textContent=j.status==='ok'?(j.ready?'متصل ✅':'غير جاهز'):'خطأ';
+    document.getElementById('status').className='v '+(j.ready?'ok':'bad');
+    document.getElementById('ver').textContent=j.service+' v'+j.version;
+  });
+  fetch('/audit',{headers:H()}).then(function(r){if(fail(r))return;return r.json();}).then(function(j){if(!j)return;
+    document.getElementById('audit').textContent=j.valid?'سليمة ✅':'مكسورة ❌';
+    document.getElementById('audit').className='v '+(j.valid?'ok':'bad');
+    document.getElementById('auditd').textContent=j.checked+' حدث';
+  });
+  fetch('/tasks',{headers:H()}).then(function(r){if(fail(r))return;return r.json();}).then(function(j){if(!j)return;
+    document.getElementById('tasks').textContent=(j.tasks||[]).length;
+  });
+  fetch('/mcp',{method:'POST',headers:H(),body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list'})}).then(function(r){if(fail(r))return;return r.json();}).then(function(j){if(!j)return;
+    document.getElementById('tools').textContent=(j.result.tools||[]).map(function(t){return '• '+t.name+' — '+t.description;}).join('\\n');
+  });
+  fetch('/mcp',{method:'POST',headers:H(),body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'verify_audit',arguments:{}}})}).then(function(r){if(fail(r))return;return r.json();}).then(function(j){if(!j)return;
+    document.getElementById('events').textContent=j.result.content[0].text;
+  });
+}
+load();setInterval(load,15000);
 </script></body></html>`;
 
 export default {
@@ -131,6 +183,12 @@ export default {
 
     if (path === "/" && request.method === "GET") {
       return new Response(LANDING, {
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+
+    if (path === "/app" && request.method === "GET") {
+      return new Response(CONSOLE, {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       });
     }

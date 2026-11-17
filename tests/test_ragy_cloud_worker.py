@@ -76,6 +76,12 @@ class CloudWorkerTests(unittest.TestCase):
             self.assertEqual(resp.status, 200)
             self.assertIn("RAGY Cloud Engine", page)
             self.assertIn("localStorage", page)
+            self.assertIn("location.href='/app'", page)
+        with _u.urlopen(BASE + "/app", timeout=8) as resp:
+            console = resp.read().decode("utf-8", "replace")
+            self.assertEqual(resp.status, 200)
+            self.assertIn("RAGY Cloud Console", console)
+            self.assertIn("fetch('/audit'", console)
         # the API itself must still reject unauthenticated calls
         code, body = call("/mcp", body={"jsonrpc": "2.0", "id": 1, "method": "initialize"})
         self.assertEqual(code, 401)
