@@ -248,3 +248,22 @@ sequenceDiagram
 
 ---
 **الخلاصة المحدّثة (2026-11-18):** المرحلة 1 (التدقيق) والمرحلة 2 (Core) مكتملتين بالدليل — 12/12 اختبار، CI أخضر، audit سليم، config مصحح. المرحلة 3 (Gateway) جارية: stdio + HTTP + 4 MCP servers شغالين، Notion وCloudflare جاهزين (CF auth محتاج تجديد من الريس). المرحلة 5 (Command Center) اتحدّثت بأرقام حقيقية (17 commits / 15 runs / 93%). n8n وCodex بيتثبتوا محلياً على Node 20 (بدون تغيير النظام). لم يُدعَ أي شيء غير مُختبَر.
+
+## المرحلة 7 — HERMES EXECUTION ENGINE ✅ (مكتملة)
+- المتطلب: Hermes كمحرك تنفيذ فعلي (استقبال → تحليل → اختيار أداة → صلاحيات → audit → نتيجة متحقق منها).
+- الدليل: `engine/execution_engine.py` + `engine_cli.py` + `tests/test_execution_engine.py` (8 اختبارات، المجموع 20/20 OK).
+- الأدوات كـ tools مش peers: MCP (read/list) · n8n (status) · Codex (version/prompt).
+- بوابة الموافقة: `CODEX_PROMPT` محتاج `--approve --approver` (اختبار: `blocked` Without approval).
+- الصلاحيات: deny-by-default لكل أداة (TOOL_ALLOWLIST) + safe-zone MCP (traversal مرفوض).
+- Audit: كل خطوة `engine.step.planned/executed/denied/approval.blocked/result` في الـ SHA-256 chain.
+- النتيجة: JSON فيه `verification` (exit_code/http_status/audit_sequence) + `audit_valid`.
+- commit: `2bb67e7`.
+
+## حاجز n8n (صادق — مش وعود)
+- مثبّت `2.48.5` على Node 24 محلي (`tools/node24`)؛ `n8n --version` ✅.
+- **فشل التشغيل**: `@n8n/typeorm` محتاج sqlite3 native binding.
+- محاولات إصلاح: `npm install sqlite3@5.1.7` ✅ بس الـ binding اتبنى لـ ABI غلط (v26 بدل v24).
+- `npm rebuild sqlite3 --build-from-source` فشل: `Could not find any Visual Studio installation to use` + node-gyp استخدم system node v26.
+- الخلاصة: n8n **مش شغال** محلياً لحد ما يتثبّت Visual Studio Build Tools (تغيير نظام — محتاج موافقتك).
+- **المحرك مش متوقف عليه**: `n8n.status` بيرجع `failed` بصراحة (مش نتيجة مزيفة) — المنظومة شغالة بـ MCP + Codex.
+- البديل المتاح فوراً: GitHub Actions + Hermes cron (بلا تثبيت إضافي).
