@@ -199,6 +199,11 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertIn("cloud.automation.started", out)
         self.assertIn("cloud.automation.finished", out)
 
+    def test_wa_status_requires_bearer(self) -> None:
+        code, body = call("/whatsapp/status")
+        self.assertEqual(code, 401)
+        self.assertEqual(body.get("error"), "unauthorized")
+
     def test_ui_phase_b_wiring(self) -> None:
         """Phase B: UI buttons must be wired to real API calls, not demo toasts."""
         from pathlib import Path

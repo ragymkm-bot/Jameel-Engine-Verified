@@ -371,6 +371,12 @@ a{color:#8ab4ff;text-decoration:none}
 <div class="muted">العملاء: <span id="clientList">—</span></div>
 <div class="muted" style="margin-top:6px">الاستخدام: <span id="clientUsage">اختر عميلًا لعرض استخدامه</span></div>
 </div>
+<div class="card" style="grid-column:1/-1">
+<h2>💬 WhatsApp Bot — الحالة</h2>
+<p class="muted">الأسرار تُرفع من جهازك بـ <span dir="ltr">wrangler secret put</span> — ما تكتبهاش هنا ولا في الشات.</p>
+<button class="btn ghost" onclick="loadWaStatus()">فحص الحالة</button>
+<pre id="waStatus" style="margin-top:8px">—</pre>
+</div>
 </div>
 <script>
 var T=localStorage.getItem('ragy_token');
@@ -475,7 +481,12 @@ function showUsage(id){
     document.getElementById('clientUsage').textContent=j?('أتمتات: '+j.automations_used+'/'+j.automations_limit+' · تشغيلات: '+j.runs_total+' · متبقي: '+j.remaining):'—';
   });
 }
-load();loadLists();loadCommands();loadClients();setInterval(function(){load();loadLists();loadCommands();loadClients();},15000);
+function loadWaStatus(){
+  fetch('/whatsapp/status',{headers:{'Authorization':'Bearer '+T}}).then(function(r){return r.json();}).then(function(j){
+    document.getElementById('waStatus').textContent=JSON.stringify(j,null,2);
+  }).catch(function(e){document.getElementById('waStatus').textContent='خطأ: '+e.message;});
+}
+load();loadLists();loadCommands();loadClients();loadWaStatus();setInterval(function(){load();loadLists();loadCommands();loadClients();loadWaStatus();},15000);
 </script></body></html>`;
 
 export default {
@@ -531,6 +542,22 @@ export default {
 
     if (path === "/health" && request.method === "GET") {
       return json({ status: "ok", service: "ragy-cloud-engine", version: "1.0.0", ready: !!(env.RAGY_BRIDGE_TOKEN || "").trim() });
+    }
+
+    // ---- WhatsApp status (auth required; names only, NEVER values) ----
+    if (path === "/whatsapp/status" && request.method === "GET") {
+      // Status is NOT a Meta endpoint — it must require our own Bearer token.
+      if (!authorized(request, env)) return json({ error: "unauthorized" }, 401, { "WWW-Authenticate": "Bearer" });
+      const names = ["WHATSAPP_VERIFY_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_TOKEN", "WHATSAPP_PHONE_ID"];
+      const present = {};
+      for (const n of names) present[n] = !!(env[n] || "").trim();
+      const all = Object.values(present).every(Boolean);
+      return json({
+        configured: all,
+        secrets: present,
+        webhook_url: "https://ragy-cloud-engine.aragy76.workers.dev/whatsapp",
+        next_step: all ? "Register the webhook URL in Meta Business Suite" : "Upload missing secrets via wrangler secret put",
+      });
     }
 
     // ---- WhatsApp webhook (Meta signature; not Bearer-auth like our API) ----

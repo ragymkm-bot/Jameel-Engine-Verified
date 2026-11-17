@@ -434,3 +434,10 @@ sequenceDiagram
 - `cloud/WHATSAPP_SETUP.md` — خطوات التفعيل (4 أسرار + webhook registration = إجراء خارجي بموافقة).
 - الحالة: الكود جاهز ومُختبر (67/67) لكن **مش مُفعّل** لحد ما ترفع الأسرار.
 - Version `8520670c`.
+
+## المرحلة 22 — WhatsApp readiness + status لوحة ✅
+- `/whatsapp/status` (Bearer) يعرض أسماء الأسرار المطلوبة وحالتها فقط — **بدون أي قيمة**.
+- لوحة 💬 في `/app` تعرض الحالة + الـ webhook URL.
+- finding أمني اتصلّح: الـ status كان مفتوح 200 → بقى 401 بدون توكن + اختبار `test_wa_status_requires_bearer`.
+- 68/68 OK · Version `9c499030`.
+- **جاهز لاستقبال الأسرار عبر `wrangler secret put` من جهاز راجي — مش في الشات.**
