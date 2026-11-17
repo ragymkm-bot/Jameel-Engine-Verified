@@ -128,15 +128,15 @@ td{padding:6px 4px;border-bottom:1px solid #16253a99;color:#fff}
   <!-- SIDEBAR -->
   <aside class="side">
     <div class="brand"><div class="ic">🧠</div><div><b>RAGY</b><small>Jameel-System</small></div></div>
-    <nav class="nav">
-      <a class="active" href="#"><span class="ic">🏠</span><span>Dashboard</span></a>
-      <a href="#"><span class="ic">👥</span><span>Agent Center</span></a>
-      <a href="#"><span class="ic">📋</span><span>Task Manager</span></a>
-      <a href="#"><span class="ic">🛡️</span><span>AI Council</span></a>
-      <a href="#"><span class="ic">🗄️</span><span>Memory Center</span></a>
-      <a href="#"><span class="ic">🔐</span><span>Security Center</span></a>
-      <a href="#"><span class="ic">⚛️</span><span>Developer Center</span></a>
-      <a href="#"><span class="ic">⚙️</span><span>Settings</span></a>
+    <nav class="nav" id="nav">
+      <a class="active" href="#" data-sec="Dashboard"><span class="ic">🏠</span><span>Dashboard</span></a>
+      <a href="#" data-sec="Agent Center"><span class="ic">👥</span><span>Agent Center</span></a>
+      <a href="#" data-sec="Task Manager"><span class="ic">📋</span><span>Task Manager</span></a>
+      <a href="#" data-sec="AI Council"><span class="ic">🛡️</span><span>AI Council</span></a>
+      <a href="#" data-sec="Memory Center"><span class="ic">🗄️</span><span>Memory Center</span></a>
+      <a href="#" data-sec="Security Center"><span class="ic">🔐</span><span>Security Center</span></a>
+      <a href="#" data-sec="Developer Center"><span class="ic">⚛️</span><span>Developer Center</span></a>
+      <a href="#" data-sec="Settings"><span class="ic">⚙️</span><span>Settings</span></a>
     </nav>
     <div class="promo"><div class="wave"></div><div class="dia">💎</div><b>RAGY v5.0</b><span class="ed">Genius Edition</span><p>نحو مستقبل أذكى — بقيادة الأفكار🚀</p></div>
   </aside>
@@ -205,7 +205,7 @@ td{padding:6px 4px;border-bottom:1px solid #16253a99;color:#fff}
       <!-- BOTTOM -->
       <div class="bottom">
         <div class="card">
-          <h3>🤖 Agents Status <button class="dd">View All →</button></h3>
+          <h3>🤖 Agents Status <button class="dd" id="btnAgents">View All →</button></h3>
           <div id="agentBox"></div>
         </div>
         <div class="card">
@@ -304,6 +304,38 @@ async function load(){
   }
 }
 load();drawRes();setInterval(load,60000);
+
+// ===== Interactive nav + buttons (working, not decorative) =====
+const MODALS={
+ 'Agent Center':{ic:'🤖',title:'Agent Center / مركز الوكلاء',body:'5 وكلاء جاهزين:<br>• Research Agent — بحث وتحليل<br>• Developer Agent — كود ومراجعة<br>• QA Agent — اختبار وجودة<br>• Automation Agent — أتمتة<br>• Analyst Agent — تحليل بيانات'},
+ 'Task Manager':{ic:'📋',title:'Task Manager / إدارة المهام',body:'مسار المهمة: create → approval → assign → dispatch<br>الـ router بيوجّه حسب الكلمة (كود→Developer، بحث→Research).<br>كل خطوة بتتسجل في audit.jsonl (hash chain).'},
+ 'AI Council':{ic:'🛡️',title:'AI Council / مجلس الذكاء',body:'فريق الخبراء: الريس منصور (منسق)، ماهر (مطور)، فاروق (أمن)، لبيب (محلل).<br>القرارات تمر عبر Approval Gate (policy-driven).'},
+ 'Memory Center':{ic:'🗄️',title:'Memory Center / الذاكرة',body:'• Hermes memory (MEMORY.md + USER.md)<br>• Audit log: runtime/audit.jsonl (SHA-256 hash chain)<br>• Skills: ~/.hermes/skills/<br>• CONTEXT_PACK.md للسياق الخارجي'},
+ 'Security Center':{ic:'🔐',title:'Security Center / الأمان',body:'✅ أسرار في الشات: صفر<br>✅ MCP Safe zone: مفعّل<br>✅ SSH auth: موثّق<br>⚠️ Cloudflare Tunnel: محتاج دومين<br>⚠️ GitHub API: rate-limited (SNAPSHOT mode)'},
+ 'Developer Center':{ic:'⚛️',title:'Developer Center / التطوير',body:'الريبو: ragymkm-bot/Jameel-Engine-Verified<br>الملفات: 76 · Commits: 14<br>MCP: mcp_stdio_server.py + mcp_cloud_bridge.py<br>النشر: GitHub Pages + Cloudflare Pages'},
+ 'Settings':{ic:'⚙️',title:'Settings / الإعدادات',body:'LIVE: بيانات من api.github.com<br>SNAPSHOT: لقطة حقيقية لما الـ API يتقفل<br>التحديث تلقائي كل 60 ثانية<br>الوقت الحالي: '+new Date().toLocaleString('ar-EG')}
+};
+function openModal(sec){
+  const d=MODALS[sec]; if(!d)return;
+  const ov=document.createElement('div');ov.id='modalOv';
+  ov.style.cssText='position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+  ov.innerHTML='<div style="background:#0e1b2e;border:1px solid #1E3A5F;border-radius:14px;padding:24px;max-width:480px;width:100%;box-shadow:0 0 40px #00e5ff33">'+
+   '<div style="display:flex;justify-content:space-between;align-items:center"><b style="color:#fff;font-size:16px">'+d.ic+' '+d.title+'</b><button id="mClose" style="background:none;border:none;color:#8FA3BF;font-size:20px;cursor:pointer">✕</button></div>'+
+   '<div style="color:#E2E8F0;font-size:13px;line-height:1.9;margin-top:16px">'+d.body+'</div></div>';
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  $('mClose').onclick=close; ov.onclick=e=>{if(e.target===ov)close();};
+}
+document.querySelectorAll('#nav a').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();
+  document.querySelectorAll('#nav a').forEach(x=>x.classList.remove('active'));
+  a.classList.add('active');
+  openModal(a.dataset.sec);
+}));
+if($('btnAgents')) $('btnAgents').onclick=()=>openModal('Agent Center');
+const btnTasks=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('View Details'));
+if(btnTasks) btnTasks.onclick=()=>openModal('Task Manager');
+if($('range')) $('range').onclick=()=>openModal('Settings');
 </script>
 </body>
 </html>
