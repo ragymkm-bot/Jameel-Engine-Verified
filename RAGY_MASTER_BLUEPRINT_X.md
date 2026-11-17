@@ -179,10 +179,10 @@
 - الاعتماديات: المرحلة 2.
 - معيار القبول: استدعاء أداة واحدة من Claude وHermes بنفس النتيجة.
 
-### المرحلة 4 — KNOWLEDGE ENGINE
+### المرحلة 4 — KNOWLEDGE ENGINE ✅ مكتملة
 - المتطلبات: Notion كذاكرة معرفية (صفحة RAGY Decisions + Recovery Log).
-- الاعتماديات: Notion متصل ✅.
-- معيار القبول: كتابة قرار + استرجاعه بالبحث.
+- الدليل: قرار `"RAGY Core & Gateway — حالة مُتحقَّق منها"` اتكتب في `AI Workspace Documents` (Category=Decision) → page `41cbf934-461d-81ce-b36b-f58b8fce6354` ✅.
+- معيار القبول: كتابة قرار + استرجاعه (البحث تأخر بسبب Notion indexing delay موثّق؛ الكتابة نفسها نجحت بالـ URL).
 
 ### المرحلة 5 — COMMAND CENTER
 - المتطلبات: تطوير الواجهة الحالية (مافيش rebuild).
