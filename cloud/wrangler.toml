@@ -1,0 +1,11 @@
+name = "ragy-cloud-engine"
+main = "src/index.js"
+compatibility_date = "2026-11-16"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ragy-tasks"
+database_id = "cc39aff6-5cea-4fce-8329-d82521623094"
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost,http://127.0.0.1,https://jameel-ragy-command-center.pages.dev"

@@ -15,3 +15,7 @@ tools/
 
 # Scratch
 *.bak-*
+
+cloud/.dev-token
+cloud/dev.log
+cloud/.dev.vars

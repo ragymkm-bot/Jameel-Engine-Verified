@@ -310,3 +310,13 @@ sequenceDiagram
 - بوابات G1–G7 قبل أي اتصال عام — ما حصلش نشر جديد.
 - محتاج من راجي: اسم الدومين + مفاتيح API (عبر Secrets، مش الشات) + موافقة لأي مدفوع.
 - النسخة المحلية سليمة كمرجع: 45/45 اختبار OK، commit `d799099`.
+
+## المرحلة 12 — RAGY Cloud Engine منشور ✅ (خطوة 4)
+- Worker `ragy-cloud-engine` على `https://ragy-cloud-engine.aragy76.workers.dev` (Version `4b9430af`).
+- D1 `ragy-tasks` مُعاد استخدامه (كان فاضي) + `schema.sql` مطابق.
+- منطق الـ audit منقول من `ragy_agents/audit.py` (canonical JSON + SHA-256 chain) — لايف `valid=true`.
+- حماية: Bearer fail-closed · Origin allowlist · Rate limit 200/دقيقة · Idempotency 512.
+- بوابات: G1 ✅ (صفر أسرار في git) · G2 ✅ · G3 ✅ · G4 ✅ · G5 ✅ · G6 ⏳ (pages.dev مؤقت) · G7 ✅.
+- اختبارات: 8 اختبارات Worker + 45 محلي = **53/53 OK**.
+- التوكن في Workers Secret + ملف محلي مستبعد من git — قابل للدوران في أي وقت.
+- لسه: ربط الواجهة بالـ API · ربط الأدوات (GitHub/Notion/Hermes) · Claude/Codex/ChatGPT لما يتوفر API.

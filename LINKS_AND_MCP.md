@@ -43,3 +43,9 @@ hermes mcp login cloudflare
 
 ## ملاحظة
 الـ cloud bridge (HTTP) متاح كمان: `PORT=8902 python mcp_cloud_bridge.py` → `/health` و `/tools`.
+
+## RAGY Cloud Engine (جديد)
+- Worker: https://ragy-cloud-engine.aragy76.workers.dev
+- الحالة: منشور ومُتحقق منه (health 200 · no-auth 401 · tools · audit chain valid)
+- D1: `ragy-tasks` (مُعاد استخدامه — كان فاضي)
+- الأسرار: Workers Secret `RAGY_BRIDGE_TOKEN` (مش في الكود/Git)
