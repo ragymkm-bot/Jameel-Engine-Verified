@@ -22,8 +22,9 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p public
-          cp docs/index.html public/index.html
+          cp replica.html public/index.html
           cp README.md public/README.md
+          echo "Deploying interactive dashboard ($(wc -c < public/index.html) bytes)"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
