@@ -191,10 +191,11 @@
 - معيار القبول: ✅ كل رقم مصدره API/audit. **ملاحظة:** المتصفح كان بيعرض نسخة قديمة (3KB) بسبب CDN cache — الحل `__verify` cache-buster؛ الـ Pages source = `gh-pages` branch (مؤكد بـ API).
 - إصلاح:`pages.yml` ينسخ `replica.html` (بدل `docs/index.html` القديم).
 
-### المرحلة 6 — AUTONOMOUS OPERATIONS
+### المرحلة 6 — AUTONOMOUS OPERATIONS ✅ مكتملة
 - المتطلبات: workflow متعدد الوكلاء + موافقات + تقييم.
-- الاعتماديات: 2-5 + cronjobs مجانية.
-- معيار القبول: مهمة كاملة create→approve→assign→dispatch→audit بدون تدخل.
+- الدليل: `python main.py --approve` → task create→approve→assign→dispatch→Close، audit 11→22 حدث (+11)، `verify()=True`.
+- معيار القبول: مهمة كاملة بدون تدخل + كل خطوة ليها حدث تدقيق. ✅
+- ملاحظة: n8n (أتمتة مرئية) بيتثبّت محلياً على Node 24 — مش شرط للـ workflow الأساسي (الـ orchestrator بيشتغل بـ stdlib).
 
 ---
 
