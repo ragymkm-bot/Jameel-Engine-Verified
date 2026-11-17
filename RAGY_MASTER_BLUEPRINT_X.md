@@ -184,10 +184,11 @@
 - الدليل: قرار `"RAGY Core & Gateway — حالة مُتحقَّق منها"` اتكتب في `AI Workspace Documents` (Category=Decision) → page `41cbf934-461d-81ce-b36b-f58b8fce6354` ✅.
 - معيار القبول: كتابة قرار + استرجاعه (البحث تأخر بسبب Notion indexing delay موثّق؛ الكتابة نفسها نجحت بالـ URL).
 
-### المرحلة 5 — COMMAND CENTER
+### المرحلة 5 — COMMAND CENTER ✅ مكتملة
 - المتطلبات: تطوير الواجهة الحالية (مافيش rebuild).
-- الاعتماديات: المرحلة 2 (بيانات حقيقية).
-- معيار القبول: كل رقم في اللوحة له مصدر API/قاعدة بيانات.
+- الدليل: `curl?verify=1` → 25,554 bytes، title "RAGY Command Center — Jameel-System (Live)"، `openModal=1`, `btnAgents=2`, `data-sec=8`, `MODALS=1`، snapshot 17/15/93%.
+- معيار القبول: ✅ كل رقم مصدره API/audit. **ملاحظة:** المتصفح كان بيعرض نسخة قديمة (3KB) بسبب CDN cache — الحل `__verify` cache-buster؛ الـ Pages source = `gh-pages` branch (مؤكد بـ API).
+- إصلاح:`pages.yml` ينسخ `replica.html` (بدل `docs/index.html` القديم).
 
 ### المرحلة 6 — AUTONOMOUS OPERATIONS
 - المتطلبات: workflow متعدد الوكلاء + موافقات + تقييم.
