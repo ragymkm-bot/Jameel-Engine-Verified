@@ -131,7 +131,7 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertEqual(names, ["list_tasks", "get_task", "create_task", "verify_audit",
                                  "create_automation", "list_automations", "run_automation", "list_runs",
                                  "post_command", "list_commands", "delete_automation", "delete_command",
-                                 "ask_copilot"])
+                                 "ask_copilot", "create_client", "list_clients", "client_usage", "client_automations"])
         code, body = call("/mcp", token=self.token,
                           body={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(code, 200)
@@ -223,6 +223,25 @@ class CloudWorkerTests(unittest.TestCase):
         # with confirm it works
         _, body = tool("delete_command", {"command_id": cid, "confirm": "DELETE"})
         self.assertTrue(json.loads(body["result"]["content"][0]["text"])["deleted"])
+
+    def test_client_isolation_and_usage(self) -> None:
+        def tool(name, args):
+            return call("/mcp", token=self.token,
+                        body={"jsonrpc": "2.0", "id": 20, "method": "tools/call",
+                              "params": {"name": name, "arguments": args}})
+        import uuid as _u
+        cname = "test-client-" + _u.uuid4().hex[:6]
+        _, body = tool("create_client", {"name": cname, "plan": "free"})
+        created = json.loads(body["result"]["content"][0]["text"])
+        cid = created["client_id"]
+        self.assertEqual(created["max_automations"], 5)
+        _, body = tool("client_usage", {"client_id": cid})
+        usage = json.loads(body["result"]["content"][0]["text"])
+        self.assertEqual(usage["automations_used"], 0)
+        self.assertEqual(usage["remaining"], 5)
+        _, body = tool("list_clients", {})
+        clients = json.loads(body["result"]["content"][0]["text"])
+        self.assertTrue(any(c["client_id"] == cid for c in clients))
 
     def test_recursive_automation_is_rejected(self) -> None:
         code, body = call("/mcp", token=self.token,

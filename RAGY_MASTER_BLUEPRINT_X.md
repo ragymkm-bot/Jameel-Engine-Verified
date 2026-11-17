@@ -371,3 +371,11 @@ sequenceDiagram
 - شريط دخول مدمج جوه الواجهة (`authBand`) لما مفيش توكن — بيتحقق من `/audit` ويحفظ في localStorage.
 - صفحة الدخول القديمة اتنقلت لـ `/gate` (لسه 200) والـ `/app` لسه شغال.
 - 61/61 OK · Version `c2927f77`.
+
+## المرحلة 19 — إدارة عملاء متعددة (Multi-tenant) ✅
+- جدول `clients` على D1 (Remote + Local) + `client_id` على automations/runs.
+- أدوات: create_client · list_clients · client_usage · client_automations.
+- عزل: كل أتمتة مرتبطة بعميل · حدود حسب الخطة (free=5, pro=50, enterprise=1000) · منع تجاوز الحد.
+- واجهة `/app`: قسم إدارة العملاء (إنشاء + عرض + استخدام).
+- لايف مُثبت: Client-Demo -> usage 0/5 · runs 0 · remaining 5.
+- 62/62 OK · Version `182237f4`.

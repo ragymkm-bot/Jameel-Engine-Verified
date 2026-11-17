@@ -95,6 +95,10 @@ const TOOLS = [
   { name: "delete_automation", description: "Delete an automation. Requires {automation_id, confirm:'DELETE'}" },
   { name: "delete_command", description: "Delete a queued command. Requires {command_id, confirm:'DELETE'}" },
   { name: "ask_copilot", description: "Ask RAGY Copilot (RAG over project docs). {question}" },
+  { name: "create_client", description: "Create a client workspace: {name, plan?}" },
+  { name: "list_clients", description: "List all client workspaces" },
+  { name: "client_usage", description: "Usage/limits for a client: {client_id}" },
+  { name: "client_automations", description: "Automations for one client: {client_id}" },
 ];
 
 function textResult(value) {
@@ -138,13 +142,25 @@ async function callTool(name, args, env, ctx = {}) {
         return { ...textResult({ error: "recursive automation tools are not allowed in steps" }), isError: true };
       }
     }
+    const clientId = String(args?.client_id || "").trim() || null;
+    if (clientId) {
+      const { results: clients } = await env.DB.prepare("SELECT * FROM clients WHERE client_id=?").bind(clientId).all();
+      const client = clients?.[0];
+      if (!client) return { ...textResult({ error: "client not found" }), isError: true };
+      if (client.status !== "active") return { ...textResult({ error: "client is not active" }), isError: true };
+      const { results: used } = await env.DB.prepare("SELECT COUNT(*) n FROM automations WHERE client_id=?").bind(clientId).all();
+      if ((used?.[0]?.n ?? 0) >= client.max_automations) {
+        return { ...textResult({ error: "plan limit reached: " + client.max_automations }), isError: true };
+      }
+    }
     const id = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO automations (automation_id,name,description,steps_json,enabled,created_by,created_at)
-       VALUES (?,?,?,?,1,?,?)`
+      `INSERT INTO automations (automation_id,name,description,steps_json,enabled,created_by,created_at,client_id)
+       VALUES (?,?,?,?,1,?,?,?)`
     ).bind(id, nameValue.slice(0, 200), String(args?.description || "").slice(0, 1000),
-           JSON.stringify(steps), ctx.actor || "ragy-cloud-engine", new Date().toISOString()).run();
-    await appendEvent(env.DB, "cloud.automation.created", ctx.actor || "ragy-cloud-engine", id, { name: nameValue, steps: steps.length });
+           JSON.stringify(steps), ctx.actor || "ragy-cloud-engine", new Date().toISOString(), clientId).run();
+    await appendEvent(env.DB, "cloud.automation.created", ctx.actor || "ragy-cloud-engine", id,
+                      { name: nameValue, steps: steps.length, client_id: clientId });
     return textResult({ automation_id: id, name: nameValue, steps: steps.length });
   }
   if (name === "list_automations") {
@@ -163,8 +179,8 @@ async function callTool(name, args, env, ctx = {}) {
     const runId = crypto.randomUUID();
     const started = new Date().toISOString();
     await env.DB.prepare(
-      "INSERT INTO automation_runs (run_id,automation_id,status,results_json,started_at) VALUES (?,?,'running','[]',?)"
-    ).bind(runId, id, started).run();
+      "INSERT INTO automation_runs (run_id,automation_id,status,results_json,started_at,client_id) VALUES (?,?,'running','[]',?,?)"
+    ).bind(runId, id, started, auto.client_id || null).run();
     await appendEvent(env.DB, "cloud.automation.started", ctx.actor || "ragy-cloud-engine", id, { run_id: runId, steps: steps.length });
     const results = [];
     let ok = true;
@@ -223,6 +239,51 @@ async function callTool(name, args, env, ctx = {}) {
     await appendEvent(env.DB, isAuto ? "cloud.automation.deleted" : "cloud.command.deleted",
                       ctx.actor || "ragy-cloud-engine", id, { deleted: true });
     return textResult({ deleted: true, id, table });
+  }
+  if (name === "create_client") {
+    const n = String(args?.name || "").trim();
+    if (!n) return { ...textResult({ error: "name is required" }), isError: true };
+    const plan = ["free", "pro", "enterprise"].includes(args?.plan) ? args.plan : "free";
+    const limits = { free: 5, pro: 50, enterprise: 1000 };
+    const id = crypto.randomUUID();
+    await env.DB.prepare(
+      "INSERT INTO clients (client_id,name,plan,max_automations,status,created_at) VALUES (?,?,?,?,'active',?)"
+    ).bind(id, n.slice(0, 200), plan, limits[plan], new Date().toISOString()).run();
+    await appendEvent(env.DB, "cloud.client.created", ctx.actor || "ragy-cloud-engine", id, { name: n, plan });
+    return textResult({ client_id: id, name: n, plan, max_automations: limits[plan] });
+  }
+  if (name === "list_clients") {
+    const { results } = await env.DB.prepare(
+      "SELECT client_id,name,plan,max_automations,status,created_at FROM clients ORDER BY created_at DESC LIMIT 100"
+    ).all();
+    return textResult(results || []);
+  }
+  if (name === "client_usage") {
+    const id = String(args?.client_id || "").trim();
+    const { results: clients } = await env.DB.prepare("SELECT * FROM clients WHERE client_id=?").bind(id).all();
+    const c = clients?.[0];
+    if (!c) return { ...textResult({ error: "client not found" }), isError: true };
+    const [{ results: autos }] = await Promise.all([
+      env.DB.prepare("SELECT COUNT(*) n FROM automations WHERE client_id=?").bind(id).all(),
+    ]);
+    const [{ results: runs }] = await Promise.all([
+      env.DB.prepare("SELECT COUNT(*) n FROM automation_runs WHERE client_id=?").bind(id).all(),
+    ]);
+    const used = autos?.[0]?.n ?? 0;
+    return textResult({
+      client_id: id, name: c.name, plan: c.plan,
+      automations_used: used, automations_limit: c.max_automations,
+      runs_total: runs?.[0]?.n ?? 0,
+      remaining: Math.max(0, c.max_automations - used),
+      status: c.status,
+    });
+  }
+  if (name === "client_automations") {
+    const id = String(args?.client_id || "").trim();
+    const { results } = await env.DB.prepare(
+      "SELECT automation_id,name,steps_json,created_at FROM automations WHERE client_id=? ORDER BY created_at DESC LIMIT 100"
+    ).bind(id).all();
+    return textResult(results || []);
   }
   if (name === "ask_copilot") {
     try {
@@ -298,6 +359,16 @@ a{color:#8ab4ff;text-decoration:none}
 <button onclick="postCmd()">إضافة أمر</button>
 <pre id="cmsg" style="margin-top:10px">—</pre>
 <div class="muted" style="margin-top:8px">الأوامر: <span id="clist">—</span></div>
+</div>
+<div class="card" style="grid-column:1/-1">
+<h2>👥 إدارة العملاء (Clients)</h2>
+<p class="muted">كل عميل مساحة منفصلة بحد أتمتات خاص. Free=5 · Pro=50 · Enterprise=1000.</p>
+<input id="cname" placeholder="اسم العميل">
+<select id="cplan" style="background:#0b0e14;color:#e8eef7;border:1px solid #2c3a56;padding:10px;border-radius:8px;margin:8px 0"><option value="free">free</option><option value="pro">pro</option><option value="enterprise">enterprise</option></select>
+<button onclick="createClient()">إنشاء عميل</button>
+<pre id="cmsg2" style="margin-top:8px">—</pre>
+<div class="muted">العملاء: <span id="clientList">—</span></div>
+<div class="muted" style="margin-top:6px">الاستخدام: <span id="clientUsage">اختر عميلًا لعرض استخدامه</span></div>
 </div>
 </div>
 <script>
@@ -385,7 +456,25 @@ function loadCommands(){
     }).join(''):'لا أوامر بعد';
   });
 }
-load();loadLists();loadCommands();setInterval(function(){load();loadLists();loadCommands();},15000);
+function createClient(){
+  var n=document.getElementById('cname').value.trim(),p=document.getElementById('cplan').value;
+  if(!n){document.getElementById('cmsg2').textContent='اكتب اسم العميل';return;}
+  call('create_client',{name:n,plan:p}).then(function(j){document.getElementById('cmsg2').textContent=JSON.stringify(j,null,2);document.getElementById('cname').value='';loadClients();});
+}
+function loadClients(){
+  call('list_clients',{}).then(function(j){
+    if(!j)return;
+    document.getElementById('clientList').innerHTML=j.length?j.map(function(c){
+      return '<div style="margin:4px 0">'+c.name+' <span class="pill p-purple">'+c.plan+'</span> <button style="padding:3px 8px;font-size:11px" onclick="showUsage(\''+c.client_id+'\')">استخدام</button></div>';
+    }).join(''):'لا عملاء بعد';
+  });
+}
+function showUsage(id){
+  call('client_usage',{client_id:id}).then(function(j){
+    document.getElementById('clientUsage').textContent=j?('أتمتات: '+j.automations_used+'/'+j.automations_limit+' · تشغيلات: '+j.runs_total+' · متبقي: '+j.remaining):'—';
+  });
+}
+load();loadLists();loadCommands();loadClients();setInterval(function(){load();loadLists();loadCommands();loadClients();},15000);
 </script></body></html>`;
 
 export default {
