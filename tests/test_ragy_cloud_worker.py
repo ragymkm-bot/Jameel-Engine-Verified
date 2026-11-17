@@ -123,7 +123,8 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertEqual(code, 200)
         names = [t["name"] for t in body["result"]["tools"]]
         self.assertEqual(names, ["list_tasks", "get_task", "create_task", "verify_audit",
-                                 "create_automation", "list_automations", "run_automation", "list_runs"])
+                                 "create_automation", "list_automations", "run_automation", "list_runs",
+                                 "post_command", "list_commands", "delete_automation", "delete_command"])
         code, body = call("/mcp", token=self.token,
                           body={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(code, 200)
@@ -190,6 +191,31 @@ class CloudWorkerTests(unittest.TestCase):
                       capture_output=True, text=True, timeout=45).stdout
         self.assertIn("cloud.automation.started", out)
         self.assertIn("cloud.automation.finished", out)
+
+    def test_command_queue_and_delete_lifecycle(self) -> None:
+        def tool(name, args):
+            return call("/mcp", token=self.token,
+                        body={"jsonrpc": "2.0", "id": 11, "method": "tools/call",
+                              "params": {"name": name, "arguments": args}})
+
+        # post a command
+        code, body = tool("post_command", {"task": "read README.md"})
+        self.assertEqual(code, 200)
+        posted = json.loads(body["result"]["content"][0]["text"])
+        cid = posted["command_id"]
+        self.assertEqual(posted["status"], "pending")
+
+        # it appears in the list
+        _, body = tool("list_commands", {})
+        cmds = json.loads(body["result"]["content"][0]["text"])
+        self.assertTrue(any(c["command_id"] == cid for c in cmds))
+
+        # delete requires explicit confirm
+        _, body = tool("delete_command", {"command_id": cid})
+        self.assertTrue(json.loads(body["result"]["content"][0]["text"]).get("error"))
+        # with confirm it works
+        _, body = tool("delete_command", {"command_id": cid, "confirm": "DELETE"})
+        self.assertTrue(json.loads(body["result"]["content"][0]["text"])["deleted"])
 
     def test_recursive_automation_is_rejected(self) -> None:
         code, body = call("/mcp", token=self.token,

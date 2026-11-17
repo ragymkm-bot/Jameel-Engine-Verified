@@ -63,3 +63,14 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   started_at TEXT NOT NULL,
   finished_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS commands (
+  command_id TEXT PRIMARY KEY,
+  task TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  result_json TEXT,
+  created_at TEXT NOT NULL,
+  claimed_at TEXT,
+  completed_at TEXT
+);

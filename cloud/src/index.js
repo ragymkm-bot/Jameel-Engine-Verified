@@ -88,6 +88,10 @@ const TOOLS = [
   { name: "list_automations", description: "List automations" },
   { name: "run_automation", description: "Run an automation by automation_id" },
   { name: "list_runs", description: "List recent automation runs" },
+  { name: "post_command", description: "Queue a command for the local Hermes agent: {task}" },
+  { name: "list_commands", description: "List commands and their status" },
+  { name: "delete_automation", description: "Delete an automation. Requires {automation_id, confirm:'DELETE'}" },
+  { name: "delete_command", description: "Delete a queued command. Requires {command_id, confirm:'DELETE'}" },
 ];
 
 function textResult(value) {
@@ -185,6 +189,38 @@ async function callTool(name, args, env, ctx = {}) {
     ).all();
     return textResult(results || []);
   }
+  if (name === "post_command") {
+    const task = String(args?.task || "").trim();
+    if (!task) return { ...textResult({ error: "task is required" }), isError: true };
+    const id = crypto.randomUUID();
+    await env.DB.prepare(
+      "INSERT INTO commands (command_id,task,requested_by,status,created_at) VALUES (?,?,?,'pending',?)"
+    ).bind(id, task.slice(0, 4000), ctx.actor || "ragy-cloud-engine", new Date().toISOString()).run();
+    await appendEvent(env.DB, "cloud.command.posted", ctx.actor || "ragy-cloud-engine", id, { task: task.slice(0, 300) });
+    return textResult({ command_id: id, status: "pending" });
+  }
+  if (name === "list_commands") {
+    const { results } = await env.DB.prepare(
+      "SELECT command_id,task,status,result_json,created_at,completed_at FROM commands ORDER BY created_at DESC LIMIT 50"
+    ).all();
+    return textResult(results || []);
+  }
+  if (name === "delete_automation" || name === "delete_command") {
+    const isAuto = name === "delete_automation";
+    const id = String(isAuto ? args?.automation_id : args?.command_id || "").trim();
+    if (args?.confirm !== "DELETE") {
+      return { ...textResult({ error: "confirm must be exactly 'DELETE'" }), isError: true };
+    }
+    if (!id) return { ...textResult({ error: "id is required" }), isError: true };
+    const table = isAuto ? "automations" : "commands";
+    const col = isAuto ? "automation_id" : "command_id";
+    // runs are historical audit evidence — keep them, only remove the definition/queue item
+    const { success } = await env.DB.prepare(`DELETE FROM ${table} WHERE ${col} = ?`).bind(id).run();
+    if (!success) return { ...textResult({ error: "delete failed or not found" }), isError: true };
+    await appendEvent(env.DB, isAuto ? "cloud.automation.deleted" : "cloud.command.deleted",
+                      ctx.actor || "ragy-cloud-engine", id, { deleted: true });
+    return textResult({ deleted: true, id, table });
+  }
   return { content: [{ type: "text", text: "unknown tool" }], isError: true };
 }
 
@@ -242,6 +278,14 @@ a{color:#8ab4ff;text-decoration:none}
 <div class="muted" style="margin-top:14px">الأتمتات: <span id="alist">—</span></div>
 <div class="muted" style="margin-top:6px">التشغيلات: <span id="aruns">—</span></div>
 </div>
+<div class="card" style="grid-column:1/-1">
+<h2>📤 قائمة أوامر الجهاز (Hermes Bridge)</h2>
+<p class="muted">الأوامر هنا بتتنفّذ على جهازك عن طريق Hermes. اكتب أمر وسيبه قيد الانتظار — الـ bridge هيقرأه وينفّذه ويرجّع النتيجة هنا.</p>
+<input id="ctask" placeholder="مثلاً: اقرأ README.md أو اعمل بحث سريع">
+<button onclick="postCmd()">إضافة أمر</button>
+<pre id="cmsg" style="margin-top:10px">—</pre>
+<div class="muted" style="margin-top:8px">الأوامر: <span id="clist">—</span></div>
+</div>
 </div>
 <script>
 var T=localStorage.getItem('ragy_token');
@@ -294,13 +338,41 @@ function runAuto(){
 }
 function loadLists(){
   call('list_automations',{}).then(function(j){
-    if(!j)return;document.getElementById('alist').textContent=j.length?j.map(function(a){return a.name+' ('+a.automation_id.slice(0,8)+')';}).join(' · '):'لا توجد أتمتات بعد';
+    if(!j)return;document.getElementById('alist').innerHTML=j.length?j.map(function(a){
+      return '<div style="margin:3px 0">'+a.name+' ('+a.automation_id.slice(0,8)+') <button style="padding:3px 8px;font-size:11px;background:#7f1d1d" onclick="delAuto(\''+a.automation_id+'\')">حذف</button></div>';
+    }).join(''):'لا توجد أتمتات بعد';
   });
   call('list_runs',{}).then(function(j){
     if(!j)return;document.getElementById('aruns').textContent=j.length?j.slice(0,5).map(function(r){return r.status+' @ '+r.started_at.slice(11,19);}).join(' · '):'لا تشغيلات بعد';
   });
 }
-load();loadLists();setInterval(function(){load();loadLists();},15000);
+function delAuto(id){
+  if(!confirm('حذف هذه الأتمتة؟ ستبقى سجلات التشغيل في الـ audit.'))return;
+  call('delete_automation',{automation_id:id,confirm:'DELETE'}).then(function(j){document.getElementById('amsg').textContent=JSON.stringify(j,null,2);loadLists();});
+}
+function delCmd(id){
+  if(!confirm('حذف هذا الأمر؟'))return;
+  call('delete_command',{command_id:id,confirm:'DELETE'}).then(function(j){document.getElementById('cmsg').textContent=JSON.stringify(j,null,2);loadCommands();});
+}
+function postCmd(){
+  var t=document.getElementById('ctask').value.trim();
+  if(!t){document.getElementById('cmsg').textContent='اكتب الأمر أولاً';return;}
+  call('post_command',{task:t}).then(function(j){
+    document.getElementById('cmsg').textContent=JSON.stringify(j,null,2);
+    document.getElementById('ctask').value='';
+    loadCommands();
+  });
+}
+function loadCommands(){
+  call('list_commands',{}).then(function(j){
+    if(!j)return;
+    document.getElementById('clist').innerHTML=j.length?j.slice(0,8).map(function(c){
+      var col=c.status==='completed'?'#4ade80':(c.status==='failed'?'#f87171':'#fbbf24');
+      return '<div style="margin:3px 0"><span style="color:'+col+'">●</span> '+c.status+' — '+c.task.slice(0,80)+' <button style="padding:3px 8px;font-size:11px;background:#7f1d1d" onclick="delCmd(\''+c.command_id+'\')">حذف</button>'+(c.result_json?'<pre>'+c.result_json.slice(0,200)+'</pre>':'')+'</div>';
+    }).join(''):'لا أوامر بعد';
+  });
+}
+load();loadLists();loadCommands();setInterval(function(){load();loadLists();loadCommands();},15000);
 </script></body></html>`;
 
 export default {
