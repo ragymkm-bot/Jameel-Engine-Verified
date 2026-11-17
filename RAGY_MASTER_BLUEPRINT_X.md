@@ -267,3 +267,11 @@ sequenceDiagram
 - قتلنا نسخة قديمة على port 5679 كانت بتعمل Task Broker conflict.
 - المحرك شاف الحالة: `engine_cli --task "check n8n status"` → `completed`, `http_status=200`, `audit_valid=true`.
 - ملاحظة: n8n محلي — بيوقف لما الجهاز يتطفأ (السحابة لسه GitHub Actions + cron).
+
+## المرحلة 8 — ChatGPT → Hermes COMMAND BRIDGE ✅ (مُختبَر)
+- السؤال: هل Hermes يستقبل أمر من ChatGPT؟ مباشرةً لا (مفيش MCP أصلي لـ ChatGPT) → الجسر عبر Notion (متصل ✅).
+- الدليل: صفحة `RAGY Command Inbox — جسر أوامر ChatGPT` (id 41cbf934-461d-8108...) + أمر تجريبي (id 41cbf934-461d-81df...) فيه `COMMAND: read README.md | APPROVE: no`.
+- التنفيذ: `engine_cli.py --task "read README.md" --task-id chatgpt-test-001` → `completed`, `audit_sequence=42`, `audit_valid=true`.
+- الرد: `CREATE_COMMENT` على صفحة الأمر بالنتيجة + verification (discussion 41cbf934-461d-8103...).
+- القواعد: APPROVE:yes ⇒ بوابة موافقة بشرية · مفيش أسرار في الأوامر · كل أمر ليه task_id فريد.
+- حد صادق: الجسر شبه-متزامن (التحليل عند قراءة الـ inbox) مش real-time push — محتاج cron أو فحص يدوي.
