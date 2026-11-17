@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "ragy-stdio": {
-      "command": "python",
+      "command": "C:/Users/PC/AppData/Local/hermes/installs/5d7df4803f0bba63/environments/90d9dcdab42946e9a9f7af55b9a773fb/venv/Scripts/python.exe",
       "args": ["C:/AI-Agents-Lab/mcp_stdio_server.py"]
     }
   }
