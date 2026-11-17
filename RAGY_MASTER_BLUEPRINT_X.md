@@ -286,3 +286,17 @@ sequenceDiagram
 - الاختبارات: **27/27 OK** (منها 7 للـ adapter).
 - CLI: `adapter_cli.py` — مثال: status=completed, audit_valid=true, audit_sequence=49.
 - **حد صادق:** idempotency في الذاكرة داخل process واحد — عبر CLI processes منفصلة يحتاج تخزيناً مشتركاً (T2 القادم). لم يُنفّذ Gateway/Tunnel/Worker/أسرار. لا تنفيذ سحابي قبل إثبات Q1.
+
+## المرحلة 10 — SEQ 007 T3: Secure Streamable HTTP Bridge ✅ (محلي، fail-closed)
+- التصميم: `T3_DESIGN.md` (9 معايير قبول + قرارات + تهديدات + منهجية).
+- التنفيذ: `engine/secure_mcp_bridge.py` — طبقة جديدة بدون تعديل القديم.
+- Bearer auth من `RAGY_BRIDGE_TOKEN` أو `runtime/vault.json` (غير متتبَّع) — `hmac.compare_digest`، لا توكن في الكود/Git/Notion.
+- Fail-closed: بدون توكن السيرفر يرفض البدء (RuntimeError).
+- Streamable HTTP: POST /mcp (JSON-RPC + Mcp-Session-Id) · GET /mcp (SSE endpoint) · DELETE /mcp · GET /health (عام، بدون معلومات حساسة).
+- Origin allowlist (localhost/127.0.0.1) → 403 · payload limit 1MB · idempotency X-Request-Id بحد 512 (T6) · 409 عند تعارض الـ ID.
+- Reuse: `mcp_stdio_server.handle` هو مصدر المنطق الوحيد (بدون نسخ).
+- Audit: كل قرار في نفس SHA-256 chain — 93 حدث bridge، chain valid=True، 148 إجمالي.
+- الاختبارات: 12 اختبار T3 جديد + 27 = **39/39 OK** (منها 401/403/409/idempotency/session/safe-zone/fail-closed).
+- Smoke: health 200 · no-token 401 · session header مُختبَر في الاختبارات.
+- Zero-leak: `secrets/.vault` فاضي (0 entries) · مفيش توكن في أي ملف مصدر.
+- حدود: idempotency في الذاكرة (process واحد) · محلي فقط · لا Tunnel/Worker/دومين · T7 مستنى إثبات Q1.
