@@ -82,21 +82,108 @@ async function deny(env, requestId, reason, code, type) {
 const TOOLS = [
   { name: "list_tasks", description: "List tasks from the cloud task store" },
   { name: "get_task", description: "Get one task by task_id" },
+  { name: "create_task", description: "Create a task: {title, description?, assigned_role?}" },
   { name: "verify_audit", description: "Verify the SHA-256 audit chain" },
+  { name: "create_automation", description: "Create an automation: {name, steps:[{tool,args}], description?}" },
+  { name: "list_automations", description: "List automations" },
+  { name: "run_automation", description: "Run an automation by automation_id" },
+  { name: "list_runs", description: "List recent automation runs" },
 ];
 
-async function callTool(name, args, env) {
+function textResult(value) {
+  return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
+}
+
+async function callTool(name, args, env, ctx = {}) {
   if (name === "list_tasks") {
     const { results } = await env.DB.prepare("SELECT task_id, title, state, assigned_role, created_at FROM tasks ORDER BY created_at DESC LIMIT 50").all();
-    return { content: [{ type: "text", text: JSON.stringify(results || [], null, 2) }] };
+    return textResult(results || []);
   }
   if (name === "get_task") {
     const { results } = await env.DB.prepare("SELECT * FROM tasks WHERE task_id = ?").bind(args?.task_id || "").all();
-    return { content: [{ type: "text", text: JSON.stringify(results?.[0] || { error: "not found" }, null, 2) }] };
+    return textResult(results?.[0] || { error: "not found" });
+  }
+  if (name === "create_task") {
+    const title = String(args?.title || "").trim();
+    if (!title) return { ...textResult({ error: "title is required" }), isError: true };
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `INSERT INTO tasks (task_id,title,description,state,assigned_role,attempt_count,max_attempts,created_at,updated_at)
+       VALUES (?,?,?,'created',?,0,3,?,?)`
+    ).bind(id, title.slice(0, 200), String(args?.description || "").slice(0, 2000),
+           String(args?.assigned_role || "unassigned").slice(0, 80), now, now).run();
+    await appendEvent(env.DB, "cloud.task.created", ctx.actor || "ragy-cloud-engine", id, { title: title.slice(0, 200) });
+    return textResult({ task_id: id, title, state: "created" });
   }
   if (name === "verify_audit") {
-    const v = await verifyChain(env.DB);
-    return { content: [{ type: "text", text: JSON.stringify(v) }] };
+    return textResult(await verifyChain(env.DB));
+  }
+  if (name === "create_automation") {
+    const nameValue = String(args?.name || "").trim();
+    const steps = Array.isArray(args?.steps) ? args.steps : [];
+    if (!nameValue) return { ...textResult({ error: "name is required" }), isError: true };
+    if (!steps.length || steps.length > 20) return { ...textResult({ error: "steps must contain 1-20 items" }), isError: true };
+    const allowed = new Set(TOOLS.map(t => t.name));
+    for (const s of steps) {
+      if (!allowed.has(s?.tool)) return { ...textResult({ error: "unknown tool in steps: " + s?.tool }), isError: true };
+      if (s.tool === "run_automation" || s.tool === "create_automation") {
+        return { ...textResult({ error: "recursive automation tools are not allowed in steps" }), isError: true };
+      }
+    }
+    const id = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO automations (automation_id,name,description,steps_json,enabled,created_by,created_at)
+       VALUES (?,?,?,?,1,?,?)`
+    ).bind(id, nameValue.slice(0, 200), String(args?.description || "").slice(0, 1000),
+           JSON.stringify(steps), ctx.actor || "ragy-cloud-engine", new Date().toISOString()).run();
+    await appendEvent(env.DB, "cloud.automation.created", ctx.actor || "ragy-cloud-engine", id, { name: nameValue, steps: steps.length });
+    return textResult({ automation_id: id, name: nameValue, steps: steps.length });
+  }
+  if (name === "list_automations") {
+    const { results } = await env.DB.prepare(
+      "SELECT automation_id,name,description,enabled,created_at FROM automations ORDER BY created_at DESC LIMIT 50"
+    ).all();
+    return textResult(results || []);
+  }
+  if (name === "run_automation") {
+    const id = String(args?.automation_id || "");
+    const { results: found } = await env.DB.prepare("SELECT * FROM automations WHERE automation_id = ?").bind(id).all();
+    const auto = found?.[0];
+    if (!auto) return { ...textResult({ error: "automation not found" }), isError: true };
+    if (!auto.enabled) return { ...textResult({ error: "automation is disabled" }), isError: true };
+    const steps = JSON.parse(auto.steps_json || "[]");
+    const runId = crypto.randomUUID();
+    const started = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO automation_runs (run_id,automation_id,status,results_json,started_at) VALUES (?,?,'running','[]',?)"
+    ).bind(runId, id, started).run();
+    await appendEvent(env.DB, "cloud.automation.started", ctx.actor || "ragy-cloud-engine", id, { run_id: runId, steps: steps.length });
+    const results = [];
+    let ok = true;
+    for (const step of steps) {
+      try {
+        const out = await callTool(step.tool, step.args || {}, env, ctx);
+        results.push({ tool: step.tool, ok: !out.isError, output: out.content?.[0]?.text?.slice(0, 2000) });
+        if (out.isError) ok = false;
+      } catch (error) {
+        results.push({ tool: step.tool, ok: false, error: String(error).slice(0, 300) });
+        ok = false;
+      }
+    }
+    const finished = new Date().toISOString();
+    await env.DB.prepare(
+      "UPDATE automation_runs SET status=?,results_json=?,finished_at=? WHERE run_id=?"
+    ).bind(ok ? "success" : "partial", JSON.stringify(results), finished, runId).run();
+    await appendEvent(env.DB, "cloud.automation.finished", ctx.actor || "ragy-cloud-engine", id,
+                      { run_id: runId, status: ok ? "success" : "partial", steps: results.length });
+    return textResult({ run_id: runId, automation_id: id, status: ok ? "success" : "partial", results });
+  }
+  if (name === "list_runs") {
+    const { results } = await env.DB.prepare(
+      "SELECT run_id,automation_id,status,started_at,finished_at FROM automation_runs ORDER BY started_at DESC LIMIT 50"
+    ).all();
+    return textResult(results || []);
   }
   return { content: [{ type: "text", text: "unknown tool" }], isError: true };
 }
@@ -145,6 +232,16 @@ a{color:#8ab4ff;text-decoration:none}
 <div class="card"><h2>المهام</h2><div class="v" id="tasks">…</div><div class="muted">من D1 السحابي</div></div>
 <div class="card"><h2>الأدوات المتاحة</h2><pre id="tools">—</pre></div>
 <div class="card" style="grid-column:1/-1"><h2>آخر الأحداث</h2><pre id="events">—</pre></div>
+<div class="card" style="grid-column:1/-1">
+<h2>🏭 Automation Studio — اصنع وشغّل أتمتة</h2>
+<p class="muted">خطوات متاحة: create_task · list_tasks · verify_audit · list_automations · list_runs. ممنوع التكرار (/create_automation / run_automation) جوه الخطوات.</p>
+<input id="aname" placeholder="اسم الأتمتة (مثلاً: فحص يومي)">
+<textarea id="astep" rows="4" placeholder='[{"tool":"verify_audit","args":{}},{"tool":"create_task","args":{"title":"مهمة جديدة"}}]' style="width:100%;box-sizing:border-box;background:#0b0e14;border:1px solid #2c3a56;color:#e8eef7;padding:10px;border-radius:8px;margin-top:10px;font-family:monospace"></textarea>
+<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button onclick="createAuto()">إنشاء أتمتة</button><input id="arun" placeholder="automation_id للتشغيل" style="flex:1;min-width:200px;margin:0"><button onclick="runAuto()">تشغيل ▶</button></div>
+<pre id="amsg" style="margin-top:10px">—</pre>
+<div class="muted" style="margin-top:14px">الأتمتات: <span id="alist">—</span></div>
+<div class="muted" style="margin-top:6px">التشغيلات: <span id="aruns">—</span></div>
+</div>
 </div>
 <script>
 var T=localStorage.getItem('ragy_token');
@@ -173,7 +270,37 @@ function load(){
     document.getElementById('events').textContent=j.result.content[0].text;
   });
 }
-load();setInterval(load,15000);
+function call(tool,args){
+  return fetch('/mcp',{method:'POST',headers:H(),body:JSON.stringify({jsonrpc:'2.0',id:Date.now(),method:'tools/call',params:{name:tool,arguments:args||{}}})})
+    .then(function(r){if(fail(r))return null;return r.json();})
+    .then(function(j){return j&&j.result?JSON.parse(j.result.content[0].text):null;});
+}
+function createAuto(){
+  var n=document.getElementById('aname').value.trim();
+  var s;
+  try{s=JSON.parse(document.getElementById('astep').value||'[]');}catch(e){document.getElementById('amsg').textContent='خطأ في JSON الخطوات: '+e.message;return;}
+  call('create_automation',{name:n,steps:s}).then(function(j){
+    if(!j){return;}
+    document.getElementById('amsg').textContent=JSON.stringify(j,null,2);
+    if(j.automation_id){document.getElementById('arun').value=j.automation_id;}
+    loadLists();
+  });
+}
+function runAuto(){
+  var id=document.getElementById('arun').value.trim();
+  if(!id){document.getElementById('amsg').textContent='اكتب automation_id';return;}
+  document.getElementById('amsg').textContent='جاري التشغيل...';
+  call('run_automation',{automation_id:id}).then(function(j){document.getElementById('amsg').textContent=JSON.stringify(j,null,2);loadLists();});
+}
+function loadLists(){
+  call('list_automations',{}).then(function(j){
+    if(!j)return;document.getElementById('alist').textContent=j.length?j.map(function(a){return a.name+' ('+a.automation_id.slice(0,8)+')';}).join(' · '):'لا توجد أتمتات بعد';
+  });
+  call('list_runs',{}).then(function(j){
+    if(!j)return;document.getElementById('aruns').textContent=j.length?j.slice(0,5).map(function(r){return r.status+' @ '+r.started_at.slice(11,19);}).join(' · '):'لا تشغيلات بعد';
+  });
+}
+load();loadLists();setInterval(function(){load();loadLists();},15000);
 </script></body></html>`;
 
 export default {

@@ -32,7 +32,10 @@ def call(path: str, *, token: str | None = None, body: dict | None = None,
     except urllib.error.HTTPError as exc:
         with exc:
             raw = exc.read().decode("utf-8", "replace")
+        try:
             return exc.code, (json.loads(raw) if raw else {})
+        except json.JSONDecodeError:
+            return exc.code, {"raw": raw[:200]}
 
 
 class CloudWorkerTests(unittest.TestCase):
@@ -119,7 +122,8 @@ class CloudWorkerTests(unittest.TestCase):
                           body={"jsonrpc": "2.0", "id": 1, "method": "initialize"})
         self.assertEqual(code, 200)
         names = [t["name"] for t in body["result"]["tools"]]
-        self.assertEqual(names, ["list_tasks", "get_task", "verify_audit"])
+        self.assertEqual(names, ["list_tasks", "get_task", "create_task", "verify_audit",
+                                 "create_automation", "list_automations", "run_automation", "list_runs"])
         code, body = call("/mcp", token=self.token,
                           body={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         self.assertEqual(code, 200)
@@ -143,6 +147,59 @@ class CloudWorkerTests(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertTrue(body["valid"])
         self.assertGreaterEqual(body["checked"], 1)
+
+    def test_automation_lifecycle_create_run_audit(self) -> None:
+        def tool(name, args):
+            return call("/mcp", token=self.token,
+                        body={"jsonrpc": "2.0", "id": 7, "method": "tools/call",
+                              "params": {"name": name, "arguments": args}})
+
+        # create an automation with two real steps
+        code, body = tool("create_automation", {
+            "name": "test-auto-daily",
+            "steps": [
+                {"tool": "verify_audit", "args": {}},
+                {"tool": "create_task", "args": {"title": "مهمة من أتمتة"}},
+            ],
+        })
+        self.assertEqual(code, 200)
+        created = json.loads(body["result"]["content"][0]["text"])
+        aid = created["automation_id"]
+        self.assertEqual(created["steps"], 2)
+
+        # run it
+        code, body = tool("run_automation", {"automation_id": aid})
+        self.assertEqual(code, 200)
+        run = json.loads(body["result"]["content"][0]["text"])
+        self.assertIn(run["status"], ("success", "partial"))
+        self.assertEqual(len(run["results"]), 2)
+        self.assertTrue(all(r["ok"] for r in run["results"]))
+
+        # events are stored in D1; verify the chain and inspect event types there
+        code, body = call("/audit", token=self.token)
+        self.assertTrue(body["valid"])
+        self.assertGreaterEqual(body["checked"], 1)
+        import subprocess as _sp
+        q = "SELECT DISTINCT event_type FROM audit_log WHERE event_type LIKE 'cloud.automation.%';"
+        import shutil as _sh
+        _wrangler = _sh.which("wrangler") or _sh.which("wrangler.cmd")
+        if not _wrangler:
+            self.skipTest("wrangler CLI not on PATH")
+        out = _sp.run([_wrangler, "d1", "execute", "ragy-tasks", "--local", "--command", q],
+                      cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent / "cloud"),
+                      capture_output=True, text=True, timeout=45).stdout
+        self.assertIn("cloud.automation.started", out)
+        self.assertIn("cloud.automation.finished", out)
+
+    def test_recursive_automation_is_rejected(self) -> None:
+        code, body = call("/mcp", token=self.token,
+                          body={"jsonrpc": "2.0", "id": 8, "method": "tools/call",
+                                "params": {"name": "create_automation",
+                                           "arguments": {"name": "loop", "steps": [{"tool": "run_automation", "args": {}}]}}})
+        self.assertEqual(code, 200)
+        result = json.loads(body["result"]["content"][0]["text"])
+        self.assertIn("error", result)
+        self.assertTrue(body["result"].get("isError"))
 
 
 if __name__ == "__main__":

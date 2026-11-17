@@ -320,3 +320,12 @@ sequenceDiagram
 - اختبارات: 8 اختبارات Worker + 45 محلي = **53/53 OK**.
 - التوكن في Workers Secret + ملف محلي مستبعد من git — قابل للدوران في أي وقت.
 - لسه: ربط الواجهة بالـ API · ربط الأدوات (GitHub/Notion/Hermes) · Claude/Codex/ChatGPT لما يتوفر API.
+
+## المرحلة 13 — Automation Studio ✅ (تصنيع أتمتة سحابي)
+- 8 أدوات MCP: create_task · create_automation · list_automations · run_automation · list_runs + القديم.
+- جداول D1 جديدة: `automations` + `automation_runs` (Remote + Local).
+- حماية: منع recursive automation (run/create جوه الخطوات) · حد 20 خطوة · allowlist للأدوات.
+- كل خطوة في الـ run بتسجل نتيجتها · Audit: automation.created/started/finished.
+- واجهة `/app` فيها Studio: اسم + خطوات JSON + إنشاء + تشغيل + عرض الأتمتات والتشغيلات.
+- لايف مُثبت: automation `8f15b85d` اتنشأ واتشغّل `success` (خطوتين ok) · chain `valid`,117 حدث.
+- اختبارات: 57/57 OK.

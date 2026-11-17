@@ -44,3 +44,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
   payload_json TEXT NOT NULL,
   timestamp TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS automations (
+  automation_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  steps_json TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS automation_runs (
+  run_id TEXT PRIMARY KEY,
+  automation_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  results_json TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT
+);
