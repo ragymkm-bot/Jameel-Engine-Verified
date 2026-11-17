@@ -343,15 +343,19 @@ sequenceDiagram
 - ما يمكن بناؤه فعليًا الآن: **RAGY Copilot** — طبقة ذاكرة+سياق (RAG) فوق نموذج موجود، تتعلم من سجل المشاريع/القرارات وترد بأسلوب راجي. محتاج API key يدخل Secrets (مش الشات).
 - "تحسّن مني" = ادّعاء غير قابل للتحقق؛ الهدف المهني: مساعد يقلل تكرار الأخطاء ويعرض أدلة، لا يتفوّق على البشر بشكل مطلق.
 
-## المرحلة 15 — واجهة AetherOps + Hermes Poller ✅
-- `/ui` — واجهة ثنائية اللغة (EN/AR + RTL) مطابقة للتصميم المرفق: 6 nav · 4 metrics · routing map SVG · approvals · agents · alerts · cost pulse · floating deploy. كل زرار له فعل حقيقي (modals/toasts/language/nav). مُختبرة بالمتصفح: صفر أخطاء.
+## المرحلة 15 — واجهة AetherOps + Hermes Poller ✅ (تصحيح تدقيق 2026-11-19)
+- `/ui` — واجهة ثنائية اللغة (EN/AR + RTL) مطابقة للتصميم المرفق: 6 nav · 4 metrics · routing map SVG · approvals · agents · alerts · cost pulse · floating deploy.
+- **تصحيح D1:** أزرار `/ui` (nav, metrics, approvals, agents, alerts, deploy) **عرضية** — بتفتح modals/toasts فقط، **مش مرتبطة بالـ API**. اللي بيشتغل فعليًا هو `/app` + `/copilot` + شريط التوكن.
+- **تصحيح D2:** الصياغة القديمة "كل زرار له فعل حقيقي" كانت غير دقيقة — اتشالت.
 - `/bridge/claim` + `/bridge/complete` — Cloudflare Worker endpoints محميين بـ Bearer (401 من غير توكن).
 - `cloud/hermes_poller.py` — يقرأ الأوامر من D1 وينفّذها عبر ExecutionEngine المحلي ويكتب النتيجة + audit.
 - E2E مُثبت لايف: post → claim → execute → complete → `status=completed, audit_valid=True`.
 - 3finding اتصحّحوا: deploy button event delegation · poller sys.path · SIGTERM من timeout تجريبي (مش عيب كود).
 - اختبارات: 61/61 OK. الواجهة version `6cf5a109`، الـ bridge `cad545a2`.
+- ربط أزرار `/ui` بالـ API مؤجل لـ Phase B (بعد موافقة الريس).
 
-## المرحلة 16 — RAGY Copilot على OpenRouter ✅ (جاهز، بينتظر المفتاح)
+## المرحلة 16 — RAGY Copilot على OpenRouter ✅ (جاهز، بينتظر المفتاح) — SUPERSEDED by Phase 17
+> **تصحيح D3 (2026-11-19):** هذه المرحلة تاريخية — المفتاح اترفع فعليًا في المرحلة 17. لا تُقرأ كحالة حالية.
 - `cloud/src/copilot.js`: RAG ثابت من مستندات المشروع + `google/gemma-4-31b-it:free` على OpenRouter.
 - `/copilot` endpoint + MCP tool `ask_copilot` + واجهة Chat في `/ui` (عربي/إنجليزي).
 - fail-closed: بدون `OPENROUTER_API_KEY` بيرجع 503/error صريح — مفيش إجابة مزيفة.
@@ -379,3 +383,31 @@ sequenceDiagram
 - واجهة `/app`: قسم إدارة العملاء (إنشاء + عرض + استخدام).
 - لايف مُثبت: Client-Demo -> usage 0/5 · runs 0 · remaining 5.
 - 62/62 OK · Version `182237f4`.
+
+---
+
+## سجل الأخطاء والتصحيحات (Error & Correction Log)
+| # | الخطأ | التصحيح | الدليل |
+|---|---|---|---|
+| D1 | أزرار `/ui` عرضية مش حقيقية | وثّقنا الحالة الصحيحة في المرحلة 15 · الربط في Phase B | `ui.html` فيه 2 `fetch()` فقط |
+| D2 | ادعاء "كل زرار شغال" | اتشال من المرحلة 15 | تقرير `RAGY_AUDIT_2026-11-19.md` |
+| D3 | المرحلة 16 تاريخية | وسم `SUPERSEDED by Phase 17` | المفتاح اترفع في 17 |
+| D4 | CDN cache عرض الرابط القديم | `?v=2` + hard refresh (Ctrl+Shift+R) · صفحة `/` بقت no-store | تحقق لايف 35,383 bytes |
+| D5 | Copilot كتب "Multi-Command Protocol" | تثبيت صريح: MCP = **Model Context Protocol** في system prompt | تحقق `has wrong expansion: False` |
+
+## الحدود المعروفة (Known Limits) — تصنيف صادق
+| البند | الحالة | السبب / المطلوب |
+|---|---|---|
+| أزرار `/ui` (nav/metrics/approvals/agents/alerts/deploy) | **PARTIAL** | عرضية — تحتاج Phase B |
+| ChatGPT مباشر | **NOT IMPLEMENTED** | مفيش Remote MCP أصلي · Notion bridge فقط |
+| Claude Code UI `/mcp` | **UNKNOWN** | المستخدم ما أكدش |
+| Notion connector | **REPORTED** | اتصل في جلسات سابقة — ما أُعاد فحصه في التدقيق |
+| الجهاز لازم شغال للـ poller | قيد تصميمي | safe-zone محلي — السحابة ما تقرأش ملفات الجهاز |
+| 5 عملاء تجريبيين في D1 | بيانات اختبار | Client-Demo + test-* — مش إنتاج |
+| الدومين | pages.dev/workers.dev مؤقت | لسه مفيش دومين مخصص |
+
+## خطة التطوير (من تقرير التدقيق)
+- **Phase A** ✅ — تصحيح الوثيقة (D1–D5 + حدود معروفة).
+- **Phase B** ⏳ — ربط أزرار `/ui` بالـ API الحقيقي.
+- **Phase C** ⏳ — Client dashboard/usage/billing-ready.
+- **Phase D** ⏳ — ChatGPT مباشر + إعادة فحص Notion/Claude.
