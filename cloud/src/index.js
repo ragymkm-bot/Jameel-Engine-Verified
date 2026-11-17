@@ -394,6 +394,12 @@ export default {
     const path = url.pathname;
 
     if (path === "/" && request.method === "GET") {
+      return new Response(UI_HTML, {
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+
+    if (path === "/gate" && request.method === "GET") {
       return new Response(LANDING, {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       });

@@ -365,3 +365,9 @@ sequenceDiagram
 - لايف مُثبت: سؤال عربي → ردّ بالعربي من RAG + `fallback_count` + model مُحدَّد.
 -finding اتصحّح: النموذج كتب "Multi-Command Protocol" → أضفنا تثبيت صريح في system prompt إن MCP = **Model Context Protocol** (اتحقق: False للغلطة).
 - 61/61 OK · Version `7a332708`.
+
+## المرحلة 18 — الرابط الرئيسي يفتح الواجهة الجديدة ✅
+- `/` بقى يقدّم واجهة AetherOps مباشرة (35,383 bytes لايف) — مش صفحة الدخول القديمة.
+- شريط دخول مدمج جوه الواجهة (`authBand`) لما مفيش توكن — بيتحقق من `/audit` ويحفظ في localStorage.
+- صفحة الدخول القديمة اتنقلت لـ `/gate` (لسه 200) والـ `/app` لسه شغال.
+- 61/61 OK · Version `c2927f77`.

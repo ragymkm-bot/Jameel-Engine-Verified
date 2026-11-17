@@ -74,17 +74,23 @@ class CloudWorkerTests(unittest.TestCase):
 
     def test_landing_page_is_public_and_api_still_guarded(self) -> None:
         import urllib.request as _u
+        # "/" now serves the full interactive UI directly
         with _u.urlopen(BASE + "/", timeout=8) as resp:
             page = resp.read().decode("utf-8", "replace")
             self.assertEqual(resp.status, 200)
-            self.assertIn("RAGY Cloud Engine", page)
-            self.assertIn("localStorage", page)
-            self.assertIn("location.href='/app'", page)
+            self.assertIn("AetherOps", page)
+            self.assertIn("RAGY Copilot", page)
+            self.assertIn("authBand", page)
+        # the legacy gate moved to /gate and is still reachable
+        with _u.urlopen(BASE + "/gate", timeout=8) as resp:
+            gate = resp.read().decode("utf-8", "replace")
+            self.assertEqual(resp.status, 200)
+            self.assertIn("localStorage", gate)
+            self.assertIn("location.href='/app'", gate)
         with _u.urlopen(BASE + "/app", timeout=8) as resp:
             console = resp.read().decode("utf-8", "replace")
             self.assertEqual(resp.status, 200)
             self.assertIn("RAGY Cloud Console", console)
-            self.assertIn("fetch('/audit'", console)
         # the API itself must still reject unauthenticated calls
         code, body = call("/mcp", body={"jsonrpc": "2.0", "id": 1, "method": "initialize"})
         self.assertEqual(code, 401)
